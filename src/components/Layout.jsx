@@ -33,12 +33,9 @@ export function Layout({ children }) {
       {/* Sidebar desktop */}
       <aside className="hidden md:flex w-64 border-r bg-card flex-col">
         <div className="p-6 border-b">
-          <div className="flex items-center gap-2">
-            <ScanLine className="h-6 w-6 text-primary" />
-            <div>
-              <h1 className="font-bold text-sm leading-none">Absensi QR</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Kursus Bahasa Jepang</p>
-            </div>
+          <div className="flex flex-col items-start gap-2">
+            <img src="/logo.png" alt="Ichikara" className="h-10 w-auto" />
+            <span className="text-xs font-semibold text-muted-foreground">Sistem Absensi QR</span>
           </div>
         </div>
 
@@ -78,7 +75,7 @@ export function Layout({ children }) {
       {/* Mobile header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-card border-b px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ScanLine className="h-5 w-5 text-primary" />
+          <img src="/logo.png" alt="Ichikara" className="h-7 w-auto" />
           <span className="font-bold text-sm">Absensi QR</span>
         </div>
         <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2">

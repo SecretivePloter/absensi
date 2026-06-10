@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
-import { CheckCircle2, XCircle, AlertCircle, ScanLine } from 'lucide-react'
+import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { QRScanner } from '../components/QRScanner'
 import { Spinner } from '../components/ui/spinner'
@@ -99,11 +99,8 @@ export default function Scan() {
       {/* Header bar */}
       <div className="flex items-center justify-between px-6 py-4 bg-gray-800/80 backdrop-blur-sm">
         <div className="flex items-center gap-3">
-          <ScanLine className="h-6 w-6 text-blue-400" />
-          <div>
-            <h1 className="font-bold text-sm leading-none">Absensi QR</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Kursus Bahasa Jepang</p>
-          </div>
+          <img src="/logo.png" alt="Ichikara" className="h-9 w-auto bg-white rounded-md px-2 py-1" />
+          <h1 className="font-bold text-sm leading-none">Absensi QR</h1>
         </div>
 
         <div className="text-right">

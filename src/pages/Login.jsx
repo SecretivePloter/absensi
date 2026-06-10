@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ScanLine, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '../store/useAuthStore'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -35,11 +35,8 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
-          <div className="h-14 w-14 bg-primary rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-            <ScanLine className="h-8 w-8 text-primary-foreground" />
-          </div>
+          <img src="/logo.png" alt="Ichikara" className="h-20 w-auto mb-4" />
           <h1 className="text-2xl font-bold">Absensi QR</h1>
-          <p className="text-muted-foreground text-sm mt-1">Kursus Bahasa Jepang</p>
         </div>
 
         <Card>
