@@ -92,7 +92,14 @@ export default function ManualAttendance() {
         notes: notes || null,
       })
 
-      if (error) throw error
+      if (error) {
+        if (error.code === '23505') {
+          toast({ title: 'Sudah absen', description: 'Pengguna ini sudah tercatat pada tanggal tersebut', variant: 'error' })
+          setLoading(false)
+          return
+        }
+        throw error
+      }
 
       const user = users.find(u => u.id === selectedUser)
       toast({ title: 'Absensi dicatat', description: `${user?.name} — ${date}`, variant: 'success' })
