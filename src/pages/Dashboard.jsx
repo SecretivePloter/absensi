@@ -21,15 +21,21 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [roleFilter, setRoleFilter] = useState('all')
   const [classFilter, setClassFilter] = useState('all')
+  const [locationFilter, setLocationFilter] = useState('all')
   const [records, setRecords] = useState([])
   const [classes, setClasses] = useState([])
+  const [locationList, setLocationList] = useState([])
   const [stats, setStats] = useState({ today: 0, students: 0, employees: 0, percentage: 0 })
   const [chartData, setChartData] = useState([])
   const [loading, setLoading] = useState(true)
 
   const fetchClasses = useCallback(async () => {
-    const { data } = await supabase.from('classes').select('id, name').order('name')
-    setClasses(data || [])
+    const [{ data: cls }, { data: locs }] = await Promise.all([
+      supabase.from('classes').select('id, name').order('name'),
+      supabase.from('locations').select('id, name').order('name'),
+    ])
+    setClasses(cls || [])
+    setLocationList(locs || [])
   }, [])
 
   const fetchStats = useCallback(async () => {
@@ -72,7 +78,7 @@ export default function Dashboard() {
     setLoading(true)
     const { data } = await supabase
       .from('attendance')
-      .select('*, users(id, name, role, class_id, photo_url, classes(name))')
+      .select('*, users(id, name, role, class_id, photo_url, classes(name)), locations(name)')
       .eq('date', selectedDate)
       .order('check_in_at', { ascending: false })
 
@@ -84,10 +90,13 @@ export default function Dashboard() {
     if (classFilter !== 'all') {
       filtered = filtered.filter(r => r.users?.class_id === classFilter)
     }
+    if (locationFilter !== 'all') {
+      filtered = filtered.filter(r => r.location_id === locationFilter)
+    }
 
     setRecords(filtered)
     setLoading(false)
-  }, [selectedDate, roleFilter, classFilter])
+  }, [selectedDate, roleFilter, classFilter, locationFilter])
 
   useEffect(() => {
     fetchClasses()
@@ -209,6 +218,16 @@ export default function Dashboard() {
                   <option value="all">Semua Kelas</option>
                   {classes.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </Select>
+                <Select
+                  value={locationFilter}
+                  onChange={e => setLocationFilter(e.target.value)}
+                  className="w-auto h-9 text-sm"
+                >
+                  <option value="all">Semua Lokasi</option>
+                  {locationList.map(l => (
+                    <option key={l.id} value={l.id}>{l.name}</option>
                   ))}
                 </Select>
                 <ExportButton
