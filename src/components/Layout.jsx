@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import {
   LayoutDashboard, Users, BookOpen, ScanLine,
-  ClipboardList, Moon, Sun, LogOut, Menu, X
+  ClipboardList, MapPin, Moon, Sun, LogOut, Menu, X
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuthStore } from '../store/useAuthStore'
@@ -13,6 +13,7 @@ const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/users', icon: Users, label: 'Pengguna' },
   { to: '/classes', icon: BookOpen, label: 'Kelas' },
+  { to: '/locations', icon: MapPin, label: 'Lokasi' },
   { to: '/attendance/manual', icon: ClipboardList, label: 'Absensi Manual' },
   { to: '/scan', icon: ScanLine, label: 'Scan QR', external: true },
 ]

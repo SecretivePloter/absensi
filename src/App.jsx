@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard'
 import Users from './pages/Users'
 import UserDetail from './pages/UserDetail'
 import Classes from './pages/Classes'
+import Locations from './pages/Locations'
 import ManualAttendance from './pages/ManualAttendance'
 
 function AuthGuard() {
@@ -52,6 +53,7 @@ const router = createBrowserRouter([
       { path: 'users', element: <Users /> },
       { path: 'users/:id', element: <UserDetail /> },
       { path: 'classes', element: <Classes /> },
+      { path: 'locations', element: <Locations /> },
       { path: 'attendance/manual', element: <ManualAttendance /> },
     ],
   },

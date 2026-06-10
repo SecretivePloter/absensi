@@ -25,21 +25,27 @@ export default function ManualAttendance() {
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [notes, setNotes] = useState('')
   const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [locationsList, setLocationsList] = useState([])
+  const [locationId, setLocationId] = useState('')
 
   const fetchUsers = useCallback(async () => {
-    const { data } = await supabase
-      .from('users')
-      .select('id, name, role, classes(name)')
-      .eq('is_active', true)
-      .order('name')
+    const [{ data }, { data: locs }] = await Promise.all([
+      supabase
+        .from('users')
+        .select('id, name, role, classes(name)')
+        .eq('is_active', true)
+        .order('name'),
+      supabase.from('locations').select('id, name').order('name'),
+    ])
     setUsers(data || [])
+    setLocationsList(locs || [])
   }, [])
 
   const fetchRecords = useCallback(async () => {
     setTableLoading(true)
     const { data } = await supabase
       .from('attendance')
-      .select('*, users(id, name, role, photo_url, classes(name))')
+      .select('*, users(id, name, role, photo_url, classes(name)), locations(name)')
       .eq('date', filterDate)
       .order('check_in_at', { ascending: false })
     setRecords(data || [])
@@ -90,6 +96,7 @@ export default function ManualAttendance() {
         date,
         method: 'manual',
         notes: notes || null,
+        location_id: locationId || null,
       })
 
       if (error) {
@@ -180,6 +187,16 @@ export default function ManualAttendance() {
                     max={format(new Date(), 'yyyy-MM-dd')}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Lokasi</Label>
+                <Select value={locationId} onChange={e => setLocationId(e.target.value)}>
+                  <option value="">Tanpa lokasi</option>
+                  {locationsList.map(l => (
+                    <option key={l.id} value={l.id}>{l.name}</option>
+                  ))}
+                </Select>
               </div>
 
               <div className="space-y-2">

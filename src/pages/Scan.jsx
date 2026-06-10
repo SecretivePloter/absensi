@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
-import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { CheckCircle2, XCircle, AlertCircle, MapPin, LogOut } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { QRScanner } from '../components/QRScanner'
 import { Spinner } from '../components/ui/spinner'
+
+// Jeda minimal sebelum scan ke-2 dihitung sebagai absen pulang —
+// mencegah scan ganda tak sengaja langsung tercatat pulang
+const CHECKOUT_MIN_GAP_MS = 5 * 60 * 1000
 
 function getGreeting(date) {
   const h = date.getHours()
@@ -18,9 +22,10 @@ const firstName = (name) => (name || '').trim().split(/\s+/)[0]
 
 export default function Scan() {
   const [now, setNow] = useState(new Date())
-  const [scanState, setScanState] = useState('idle') // idle | processing | success | duplicate | error
+  const [scanState, setScanState] = useState('idle') // idle | processing | success | checkout | duplicate | error
   const [result, setResult] = useState(null)
-  // Lock pakai ref supaya kebal stale closure — cegah scan berulang per frame
+  const [locations, setLocations] = useState([])
+  const [locationId, setLocationId] = useState(() => localStorage.getItem('scan_location_id') || '')
   const lockRef = useRef(false)
 
   // Jam real-time
@@ -29,12 +34,31 @@ export default function Scan() {
     return () => clearInterval(t)
   }, [])
 
+  // Ambil daftar lokasi
+  useEffect(() => {
+    supabase.from('locations').select('id, name').order('name').then(({ data }) => {
+      setLocations(data || [])
+      // Bersihkan pilihan tersimpan yang lokasinya sudah dihapus
+      const saved = localStorage.getItem('scan_location_id')
+      if (saved && data && !data.some(l => l.id === saved)) {
+        localStorage.removeItem('scan_location_id')
+        setLocationId('')
+      }
+    })
+  }, [])
+
+  const handleLocationChange = (e) => {
+    const v = e.target.value
+    setLocationId(v)
+    if (v) localStorage.setItem('scan_location_id', v)
+    else localStorage.removeItem('scan_location_id')
+  }
+
   const handleScan = useCallback(async (qrValue) => {
     if (lockRef.current) return
     lockRef.current = true
     setScanState('processing')
 
-    // Kembali ke idle & buka lock setelah delay
     const finish = (delay) => setTimeout(() => {
       setScanState('idle')
       setResult(null)
@@ -66,54 +90,107 @@ export default function Scan() {
 
       const { data: existing } = await supabase
         .from('attendance')
-        .select('id, check_in_at')
+        .select('id, check_in_at, check_out_at')
         .eq('user_id', user.id)
         .eq('date', today)
         .maybeSingle()
 
-      if (existing) {
-        setResult({ type: 'duplicate', user, checkInAt: existing.check_in_at })
-        setScanState('duplicate')
-        finish(2500)
+      // ---- Belum absen hari ini → catat MASUK ----
+      if (!existing) {
+        const { error: insertErr } = await supabase
+          .from('attendance')
+          .insert({
+            user_id: user.id,
+            method: 'qr',
+            date: today,
+            location_id: locationId || null,
+          })
+
+        if (insertErr) {
+          if (insertErr.code === '23505') {
+            setResult({ type: 'duplicate', user, checkInAt: new Date().toISOString() })
+            setScanState('duplicate')
+            finish(2500)
+            return
+          }
+          throw insertErr
+        }
+
+        setResult({ type: 'success', user, greeting: getGreeting(new Date()) })
+        setScanState('success')
+        finish(2000)
         return
       }
 
-      const { error: insertErr } = await supabase
-        .from('attendance')
-        .insert({ user_id: user.id, method: 'qr', date: today })
+      // ---- Sudah masuk, belum pulang ----
+      if (!existing.check_out_at) {
+        const sinceCheckIn = Date.now() - new Date(existing.check_in_at).getTime()
 
-      if (insertErr) {
-        // 23505 = unique violation: scan beradu cepat, sudah tercatat
-        if (insertErr.code === '23505') {
-          setResult({ type: 'duplicate', user, checkInAt: new Date().toISOString() })
+        // Terlalu cepat → anggap scan ganda, jangan catat pulang
+        if (sinceCheckIn < CHECKOUT_MIN_GAP_MS) {
+          setResult({ type: 'duplicate', user, checkInAt: existing.check_in_at })
           setScanState('duplicate')
           finish(2500)
           return
         }
-        throw insertErr
+
+        const { error: updateErr } = await supabase
+          .from('attendance')
+          .update({ check_out_at: new Date().toISOString() })
+          .eq('id', existing.id)
+
+        if (updateErr) throw updateErr
+
+        setResult({ type: 'checkout', user, checkInAt: existing.check_in_at })
+        setScanState('checkout')
+        finish(2000)
+        return
       }
 
-      setResult({ type: 'success', user, greeting: getGreeting(new Date()) })
-      setScanState('success')
-      finish(2000)
+      // ---- Sudah masuk DAN pulang ----
+      setResult({
+        type: 'done',
+        user,
+        checkInAt: existing.check_in_at,
+        checkOutAt: existing.check_out_at,
+      })
+      setScanState('duplicate')
+      finish(2500)
     } catch (err) {
       console.error(err)
       setResult({ type: 'error', message: 'Terjadi kesalahan sistem' })
       setScanState('error')
       finish(2500)
     }
-  }, [])
+  }, [locationId])
+
+  const currentLocationName = locations.find(l => l.id === locationId)?.name
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col">
       {/* Header bar */}
-      <div className="flex items-center justify-between px-6 py-4 bg-gray-800/80 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Ichikara" className="h-9 w-auto bg-white rounded-md px-2 py-1" />
-          <h1 className="font-bold text-sm leading-none">Absensi QR</h1>
+      <div className="flex items-center justify-between px-6 py-4 bg-gray-800/80 backdrop-blur-sm gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <img src="/logo.png" alt="Ichikara" className="h-9 w-auto bg-white rounded-md px-2 py-1 shrink-0" />
+          <h1 className="font-bold text-sm leading-none hidden sm:block">Absensi QR</h1>
         </div>
 
-        <div className="text-right">
+        {/* Pemilih lokasi */}
+        <div className="flex items-center gap-2 min-w-0">
+          <MapPin className={`h-4 w-4 shrink-0 ${locationId ? 'text-green-400' : 'text-yellow-400'}`} />
+          <select
+            value={locationId}
+            onChange={handleLocationChange}
+            className="bg-gray-700 text-white text-sm rounded-md px-3 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[180px] truncate"
+          >
+            <option value="">Pilih Lokasi…</option>
+            {locations.map(l => (
+              <option key={l.id} value={l.id}>{l.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="text-right shrink-0">
           <div className="text-2xl font-mono font-bold tabular-nums">
             {format(now, 'HH:mm:ss')}
           </div>
@@ -123,15 +200,27 @@ export default function Scan() {
         </div>
       </div>
 
+      {/* Peringatan jika lokasi belum dipilih */}
+      {locations.length > 0 && !locationId && (
+        <div className="bg-yellow-500/20 border-b border-yellow-500/40 text-yellow-300 text-center text-sm py-2 px-4">
+          ⚠ Pilih lokasi kantor di atas — absensi tanpa lokasi tetap tercatat tapi tidak diketahui kantornya
+        </div>
+      )}
+
       {/* Main content — scanner selalu ter-mount, hasil tampil sebagai overlay */}
       <div className="flex-1 relative flex flex-col items-center justify-center px-4 py-8">
         <div className="w-full max-w-sm">
-          <p className="text-center text-gray-300 mb-6">Arahkan QR code ke kamera</p>
+          <p className="text-center text-gray-300 mb-2">Arahkan QR code ke kamera</p>
+          {currentLocationName && (
+            <p className="text-center text-xs text-green-400/80 mb-4 flex items-center justify-center gap-1">
+              <MapPin className="h-3 w-3" /> {currentLocationName}
+            </p>
+          )}
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-700">
             <QRScanner onScan={handleScan} />
           </div>
           <p className="text-center text-xs text-gray-500 mt-4">
-            Scan otomatis — tidak perlu menekan tombol
+            Scan pertama = masuk · scan kedua = pulang
           </p>
         </div>
 
@@ -145,6 +234,7 @@ export default function Scan() {
               </div>
             )}
 
+            {/* MASUK */}
             {scanState === 'success' && result?.user && (
               <div className="flex flex-col items-center gap-5 animate-fade-in text-center">
                 <div className="relative">
@@ -173,12 +263,48 @@ export default function Scan() {
                 </div>
                 <div className="bg-green-500/20 border border-green-500/50 rounded-xl px-6 py-2.5">
                   <p className="text-green-400 font-medium">
-                    Absensi tercatat · {format(new Date(), 'HH:mm')}
+                    Absen masuk tercatat · {format(new Date(), 'HH:mm')}
+                    {currentLocationName ? ` · ${currentLocationName}` : ''}
                   </p>
                 </div>
               </div>
             )}
 
+            {/* PULANG */}
+            {scanState === 'checkout' && result?.user && (
+              <div className="flex flex-col items-center gap-5 animate-fade-in text-center">
+                <div className="relative">
+                  {result.user.photo_url ? (
+                    <img
+                      src={result.user.photo_url}
+                      alt={result.user.name}
+                      className="h-28 w-28 rounded-full object-cover border-4 border-blue-500"
+                    />
+                  ) : (
+                    <div className="h-28 w-28 rounded-full bg-blue-500/20 border-4 border-blue-500 flex items-center justify-center text-4xl font-bold text-blue-400">
+                      {result.user.name?.charAt(0)?.toUpperCase()}
+                    </div>
+                  )}
+                  <div className="absolute -bottom-2 -right-2 bg-blue-500 rounded-full p-1 animate-check-bounce">
+                    <LogOut className="h-7 w-7 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xl text-blue-300/90">Sampai Jumpa,</p>
+                  <h2 className="text-4xl font-bold mt-1">{firstName(result.user.name)}</h2>
+                  <p className="text-gray-400 text-sm mt-2">
+                    Masuk {format(new Date(result.checkInAt), 'HH:mm')}
+                  </p>
+                </div>
+                <div className="bg-blue-500/20 border border-blue-500/50 rounded-xl px-6 py-2.5">
+                  <p className="text-blue-400 font-medium">
+                    Absen pulang tercatat · {format(new Date(), 'HH:mm')}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* DUPLIKAT / SUDAH LENGKAP */}
             {scanState === 'duplicate' && result?.user && (
               <div className="flex flex-col items-center gap-4 animate-fade-in text-center">
                 <div className="h-20 w-20 rounded-full bg-yellow-500/20 border-4 border-yellow-500 flex items-center justify-center">
@@ -191,10 +317,21 @@ export default function Scan() {
                   </p>
                 </div>
                 <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-xl px-6 py-3">
-                  <p className="text-yellow-400 font-semibold text-lg">Sudah Absen Hari Ini</p>
-                  <p className="text-yellow-300/70 text-sm">
-                    Pukul {format(new Date(result.checkInAt), 'HH:mm:ss')}
-                  </p>
+                  {result.type === 'done' ? (
+                    <>
+                      <p className="text-yellow-400 font-semibold text-lg">Absensi Hari Ini Lengkap</p>
+                      <p className="text-yellow-300/70 text-sm">
+                        Masuk {format(new Date(result.checkInAt), 'HH:mm')} · Pulang {format(new Date(result.checkOutAt), 'HH:mm')}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-yellow-400 font-semibold text-lg">Baru Saja Absen Masuk</p>
+                      <p className="text-yellow-300/70 text-sm">
+                        Pukul {format(new Date(result.checkInAt), 'HH:mm:ss')} — scan pulang tersedia 5 menit setelah masuk
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             )}

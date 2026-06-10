@@ -98,14 +98,18 @@ const exportStamp = () =>
   `Diekspor ${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} pukul ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
 
 export function exportAttendanceToExcel(records, filename = 'absensi') {
-  const headers = ['No', 'Nama', 'Role', 'Kelas', 'Tanggal', 'Jam Check-in', 'Metode', 'Catatan']
+  const headers = ['No', 'Nama', 'Role', 'Kelas', 'Tanggal', 'Jam Masuk', 'Jam Pulang', 'Lokasi', 'Metode', 'Catatan']
+  const fmtTime = (t) =>
+    t ? new Date(t).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-'
   const rows = records.map((r, i) => [
     i + 1,
     r.users?.name ?? '-',
     r.users?.role === 'student' ? 'Murid' : 'Karyawan',
     r.users?.classes?.name ?? '-',
     new Date(r.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
-    new Date(r.check_in_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    fmtTime(r.check_in_at),
+    fmtTime(r.check_out_at),
+    r.locations?.name ?? '-',
     r.method === 'qr' ? 'QR Scan' : 'Manual',
     r.notes ?? '',
   ])
@@ -115,7 +119,7 @@ export function exportAttendanceToExcel(records, filename = 'absensi') {
     subtitle: `${exportStamp()} · ${records.length} record`,
     headers,
     rows,
-    centerCols: [0, 4, 5, 6],
+    centerCols: [0, 4, 5, 6, 8],
   })
 
   const wb = XLSX.utils.book_new()

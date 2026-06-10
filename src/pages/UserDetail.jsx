@@ -38,7 +38,7 @@ export default function UserDetail() {
   const fetchAttendance = useCallback(async () => {
     const { data } = await supabase
       .from('attendance')
-      .select('*')
+      .select('*, locations(name)')
       .eq('user_id', userId)
       .order('check_in_at', { ascending: false })
     setAttendance(data || [])
@@ -241,7 +241,9 @@ export default function UserDetail() {
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="text-left p-3 font-medium">Tanggal</th>
-                    <th className="text-left p-3 font-medium">Jam</th>
+                    <th className="text-left p-3 font-medium">Masuk</th>
+                    <th className="text-left p-3 font-medium">Pulang</th>
+                    <th className="text-left p-3 font-medium hidden md:table-cell">Lokasi</th>
                     <th className="text-left p-3 font-medium">Metode</th>
                     <th className="text-left p-3 font-medium hidden sm:table-cell">Catatan</th>
                   </tr>
@@ -253,6 +255,12 @@ export default function UserDetail() {
                         {format(new Date(r.date), 'EEE, d MMM yyyy', { locale: id })}
                       </td>
                       <td className="p-3 font-mono text-xs">{format(new Date(r.check_in_at), 'HH:mm:ss')}</td>
+                      <td className="p-3 font-mono text-xs">
+                        {r.check_out_at ? format(new Date(r.check_out_at), 'HH:mm:ss') : <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td className="p-3 hidden md:table-cell text-muted-foreground text-xs">
+                        {r.locations?.name ?? '-'}
+                      </td>
                       <td className="p-3">
                         <Badge variant={r.method === 'qr' ? 'success' : 'warning'}>
                           {r.method === 'qr' ? 'QR Scan' : 'Manual'}
@@ -264,7 +272,7 @@ export default function UserDetail() {
                     </tr>
                   ))}
                   {paged.length === 0 && (
-                    <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Belum ada riwayat</td></tr>
+                    <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Belum ada riwayat</td></tr>
                   )}
                 </tbody>
               </table>

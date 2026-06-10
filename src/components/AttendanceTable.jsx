@@ -100,7 +100,9 @@ export function AttendanceTable({ records, loading, selectable = false, onDelete
               <th className="text-left p-3 font-medium">Nama</th>
               <th className="text-left p-3 font-medium">Role</th>
               <th className="text-left p-3 font-medium hidden md:table-cell">Kelas</th>
-              <th className="text-left p-3 font-medium">Jam</th>
+              <th className="text-left p-3 font-medium">Masuk</th>
+              <th className="text-left p-3 font-medium">Pulang</th>
+              <th className="text-left p-3 font-medium hidden md:table-cell">Lokasi</th>
               <th className="text-left p-3 font-medium hidden sm:table-cell">Metode</th>
               <th className="text-left p-3 font-medium hidden lg:table-cell">Catatan</th>
             </tr>
@@ -150,6 +152,12 @@ export function AttendanceTable({ records, loading, selectable = false, onDelete
                 </td>
                 <td className="p-3 font-mono text-xs">
                   {format(new Date(r.check_in_at), 'HH:mm:ss')}
+                </td>
+                <td className="p-3 font-mono text-xs">
+                  {r.check_out_at ? format(new Date(r.check_out_at), 'HH:mm:ss') : <span className="text-muted-foreground">—</span>}
+                </td>
+                <td className="p-3 hidden md:table-cell text-muted-foreground text-xs">
+                  {r.locations?.name ?? '-'}
                 </td>
                 <td className="p-3 hidden sm:table-cell">
                   <Badge variant={r.method === 'qr' ? 'success' : 'warning'}>
