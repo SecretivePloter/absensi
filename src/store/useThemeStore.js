@@ -3,7 +3,8 @@ import { create } from 'zustand'
 const getInitialTheme = () => {
   const stored = localStorage.getItem('theme')
   if (stored) return stored
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  // Default ke light mode supaya tampilan lebih cerah
+  return 'light'
 }
 
 export const useThemeStore = create((set) => ({
