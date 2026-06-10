@@ -14,8 +14,10 @@ import { Input } from '../components/ui/input'
 import { Select } from '../components/ui/select'
 import { Button } from '../components/ui/button'
 import { Spinner } from '../components/ui/spinner'
+import { useToast } from '../components/ui/toast'
 
 export default function Dashboard() {
+  const toast = useToast()
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [roleFilter, setRoleFilter] = useState('all')
   const [classFilter, setClassFilter] = useState('all')
@@ -104,6 +106,16 @@ export default function Dashboard() {
     fetchStats()
     fetchChartData()
     fetchRecords()
+  }
+
+  const handleDeleteRecords = async (ids) => {
+    const { error } = await supabase.from('attendance').delete().in('id', ids)
+    if (error) {
+      toast({ title: 'Gagal menghapus', description: error.message, variant: 'error' })
+      return
+    }
+    toast({ title: 'Berhasil', description: `${ids.length} record absensi dihapus`, variant: 'success' })
+    handleRefresh()
   }
 
   const statCards = [
@@ -211,7 +223,12 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <AttendanceTable records={records} loading={loading} />
+            <AttendanceTable
+              records={records}
+              loading={loading}
+              selectable
+              onDeleteSelected={handleDeleteRecords}
+            />
           </CardContent>
         </Card>
       </div>
