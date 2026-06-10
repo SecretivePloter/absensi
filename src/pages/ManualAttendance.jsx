@@ -49,6 +49,16 @@ export default function ManualAttendance() {
   useEffect(() => { fetchUsers() }, [fetchUsers])
   useEffect(() => { fetchRecords() }, [fetchRecords])
 
+  const handleDeleteRecords = async (ids) => {
+    const { error } = await supabase.from('attendance').delete().in('id', ids)
+    if (error) {
+      toast({ title: 'Gagal menghapus', description: error.message, variant: 'error' })
+      return
+    }
+    toast({ title: 'Berhasil', description: `${ids.length} record absensi dihapus`, variant: 'success' })
+    fetchRecords()
+  }
+
   const filteredUsers = users.filter(u =>
     u.name.toLowerCase().includes(search.toLowerCase())
   )
@@ -203,7 +213,12 @@ export default function ManualAttendance() {
             </div>
           </CardHeader>
           <CardContent>
-            <AttendanceTable records={records} loading={tableLoading} />
+            <AttendanceTable
+              records={records}
+              loading={tableLoading}
+              selectable
+              onDeleteSelected={handleDeleteRecords}
+            />
           </CardContent>
         </Card>
       </div>
