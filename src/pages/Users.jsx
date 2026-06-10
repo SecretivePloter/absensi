@@ -32,6 +32,35 @@ export default function Users() {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoPreview, setPhotoPreview] = useState('')
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'File harus berupa gambar', variant: 'error' })
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: 'Ukuran maksimal 2 MB', description: 'Kompres dulu fotonya', variant: 'error' })
+      return
+    }
+    setPhotoFile(file)
+    setPhotoPreview(URL.createObjectURL(file))
+  }
+
+  const uploadPhoto = async (file) => {
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const path = `users/${crypto.randomUUID()}.${ext}`
+    const { error } = await supabase.storage.from('photos').upload(path, file, {
+      cacheControl: '3600',
+      contentType: file.type,
+    })
+    if (error) throw new Error(`Upload foto gagal: ${error.message}`)
+    const { data } = supabase.storage.from('photos').getPublicUrl(path)
+    return data.publicUrl
+  }
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -58,6 +87,8 @@ export default function Users() {
   const openAdd = () => {
     setEditing(null)
     setForm({ ...emptyForm, qr_code: crypto.randomUUID() })
+    setPhotoFile(null)
+    setPhotoPreview('')
     setFormOpen(true)
   }
 
@@ -71,6 +102,8 @@ export default function Users() {
       qr_code: u.qr_code,
       photo_url: u.photo_url || '',
     })
+    setPhotoFile(null)
+    setPhotoPreview(u.photo_url || '')
     setFormOpen(true)
   }
 
@@ -78,13 +111,18 @@ export default function Users() {
     e.preventDefault()
     setSaving(true)
     try {
+      let photoUrl = form.photo_url || null
+      if (photoFile) {
+        photoUrl = await uploadPhoto(photoFile)
+      }
+
       const payload = {
         name: form.name,
         role: form.role,
         class_id: form.class_id || null,
         phone: form.phone || null,
         qr_code: form.qr_code || crypto.randomUUID(),
-        photo_url: form.photo_url || null,
+        photo_url: photoUrl,
       }
 
       if (editing) {
@@ -300,12 +338,38 @@ export default function Users() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>URL Foto</Label>
-                <Input
-                  placeholder="https://..."
-                  value={form.photo_url}
-                  onChange={e => setForm(f => ({ ...f, photo_url: e.target.value }))}
-                />
+                <Label>Foto</Label>
+                <div className="flex items-center gap-3">
+                  {photoPreview ? (
+                    <img
+                      src={photoPreview}
+                      alt="Preview"
+                      className="h-14 w-14 rounded-full object-cover border"
+                    />
+                  ) : (
+                    <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground border">
+                      Foto
+                    </div>
+                  )}
+                  <div className="flex-1 space-y-1">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="cursor-pointer file:cursor-pointer"
+                    />
+                    <p className="text-xs text-muted-foreground">JPG/PNG, maksimal 2 MB</p>
+                  </div>
+                  {photoPreview && (
+                    <button
+                      type="button"
+                      onClick={() => { setPhotoFile(null); setPhotoPreview(''); setForm(f => ({ ...f, photo_url: '' })) }}
+                      className="text-xs text-destructive hover:underline shrink-0"
+                    >
+                      Hapus
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

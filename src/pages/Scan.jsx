@@ -82,7 +82,16 @@ export default function Scan() {
         .from('attendance')
         .insert({ user_id: user.id, method: 'qr', date: today })
 
-      if (insertErr) throw insertErr
+      if (insertErr) {
+        // 23505 = unique violation: scan beradu cepat, sudah tercatat
+        if (insertErr.code === '23505') {
+          setResult({ type: 'duplicate', user, checkInAt: new Date().toISOString() })
+          setScanState('duplicate')
+          finish(2500)
+          return
+        }
+        throw insertErr
+      }
 
       setResult({ type: 'success', user, greeting: getGreeting(new Date()) })
       setScanState('success')

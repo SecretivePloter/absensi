@@ -70,22 +70,19 @@ export default function Dashboard() {
 
   const fetchRecords = useCallback(async () => {
     setLoading(true)
-    let q = supabase
+    const { data } = await supabase
       .from('attendance')
-      .select('*, users(id, name, role, photo_url, classes(name))')
+      .select('*, users(id, name, role, class_id, photo_url, classes(name))')
       .eq('date', selectedDate)
       .order('check_in_at', { ascending: false })
 
-    if (roleFilter !== 'all') q = q.eq('users.role', roleFilter)
-
-    const { data } = await q
     let filtered = data || []
 
     if (roleFilter !== 'all') {
       filtered = filtered.filter(r => r.users?.role === roleFilter)
     }
     if (classFilter !== 'all') {
-      filtered = filtered.filter(r => r.users?.classes?.name === classFilter || r.users?.class_id === classFilter)
+      filtered = filtered.filter(r => r.users?.class_id === classFilter)
     }
 
     setRecords(filtered)

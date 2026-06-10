@@ -11,7 +11,7 @@ export default defineConfig({
           'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-ui': ['recharts', 'lucide-react', 'date-fns'],
           'vendor-qr': ['html5-qrcode', 'qrcode'],
-          'vendor-xlsx': ['xlsx'],
+          'vendor-xlsx': ['xlsx-js-style'],
         },
       },
     },
