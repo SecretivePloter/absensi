@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Edit2, QrCode, ToggleLeft, ToggleRight, Search } from 'lucide-react'
+import { Plus, Edit2, QrCode, ToggleLeft, ToggleRight, Search, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { Layout } from '../components/Layout'
 import { QRCodeDisplay } from '../components/QRCode'
@@ -18,6 +18,18 @@ import { FileSpreadsheet } from 'lucide-react'
 
 const emptyForm = { name: '', role: 'student', class_id: '', phone: '', qr_code: '', photo_url: '' }
 
+const roleLabel = (role) => {
+  if (role === 'student') return 'Murid'
+  if (role === 'sensei') return 'Sensei'
+  return 'Staff'
+}
+
+const roleBadgeVariant = (role) => {
+  if (role === 'student') return 'default'
+  if (role === 'sensei') return 'warning'
+  return 'secondary'
+}
+
 export default function Users() {
   const toast = useToast()
   const [users, setUsers] = useState([])
@@ -34,6 +46,8 @@ export default function Users() {
   const [saving, setSaving] = useState(false)
   const [photoFile, setPhotoFile] = useState(null)
   const [photoPreview, setPhotoPreview] = useState('')
+  const [deleteConfirmUser, setDeleteConfirmUser] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   const handlePhotoChange = (e) => {
     const file = e.target.files?.[0]
@@ -157,6 +171,26 @@ export default function Users() {
     }
   }
 
+  const handleDeleteUser = async () => {
+    if (!deleteConfirmUser) return
+    setDeleting(true)
+    try {
+      const { error } = await supabase.from('users').delete().eq('id', deleteConfirmUser.id)
+      if (error) throw error
+      toast({
+        title: 'Pengguna dihapus',
+        description: `${deleteConfirmUser.name} telah dihapus permanen beserta seluruh data absensinya`,
+        variant: 'success',
+      })
+      setDeleteConfirmUser(null)
+      fetchData()
+    } catch (err) {
+      toast({ title: 'Gagal menghapus', description: err.message, variant: 'error' })
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <Layout>
       <div className="p-6 space-y-6">
@@ -190,7 +224,9 @@ export default function Users() {
               <Select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="w-36">
                 <option value="all">Semua Role</option>
                 <option value="student">Murid</option>
-                <option value="employee">Karyawan</option>
+                <option value="staff">Staff</option>
+                <option value="sensei">Sensei</option>
+                <option value="employee">Lama (employee)</option>
               </Select>
               <Select value={classFilter} onChange={e => setClassFilter(e.target.value)} className="w-40">
                 <option value="all">Semua Kelas</option>
@@ -244,8 +280,8 @@ export default function Users() {
                           </div>
                         </td>
                         <td className="p-3">
-                          <Badge variant={u.role === 'student' ? 'default' : 'secondary'}>
-                            {u.role === 'student' ? 'Murid' : 'Karyawan'}
+                          <Badge variant={roleBadgeVariant(u.role)}>
+                            {roleLabel(u.role)}
                           </Badge>
                         </td>
                         <td className="p-3 hidden md:table-cell text-muted-foreground">
@@ -261,18 +297,10 @@ export default function Users() {
                         </td>
                         <td className="p-3">
                           <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost" size="icon"
-                              onClick={() => setQrModalUser(u)}
-                              title="Lihat QR"
-                            >
+                            <Button variant="ghost" size="icon" onClick={() => setQrModalUser(u)} title="Lihat QR">
                               <QrCode className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost" size="icon"
-                              onClick={() => openEdit(u)}
-                              title="Edit"
-                            >
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(u)} title="Edit">
                               <Edit2 className="h-4 w-4" />
                             </Button>
                             <Button
@@ -284,6 +312,14 @@ export default function Users() {
                                 ? <ToggleRight className="h-4 w-4 text-green-600" />
                                 : <ToggleLeft className="h-4 w-4 text-muted-foreground" />
                               }
+                            </Button>
+                            <Button
+                              variant="ghost" size="icon"
+                              onClick={() => setDeleteConfirmUser(u)}
+                              title="Hapus permanen"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </td>
@@ -317,7 +353,8 @@ export default function Users() {
                   <Label>Role *</Label>
                   <Select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
                     <option value="student">Murid</option>
-                    <option value="employee">Karyawan</option>
+                    <option value="staff">Staff</option>
+                    <option value="sensei">Sensei</option>
                   </Select>
                 </div>
                 <div className="space-y-2">
@@ -341,23 +378,14 @@ export default function Users() {
                 <Label>Foto</Label>
                 <div className="flex items-center gap-3">
                   {photoPreview ? (
-                    <img
-                      src={photoPreview}
-                      alt="Preview"
-                      className="h-14 w-14 rounded-full object-cover border"
-                    />
+                    <img src={photoPreview} alt="Preview" className="h-14 w-14 rounded-full object-cover border" />
                   ) : (
                     <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground border">
                       Foto
                     </div>
                   )}
                   <div className="flex-1 space-y-1">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                      className="cursor-pointer file:cursor-pointer"
-                    />
+                    <Input type="file" accept="image/*" onChange={handlePhotoChange} className="cursor-pointer file:cursor-pointer" />
                     <p className="text-xs text-muted-foreground">JPG/PNG, maksimal 2 MB</p>
                   </div>
                   {photoPreview && (
@@ -408,20 +436,44 @@ export default function Users() {
             <DialogTitle>QR Code — {qrModalUser?.name}</DialogTitle>
           </DialogHeader>
           <div className="p-6 pt-2 flex flex-col items-center gap-3">
-            <Badge variant={qrModalUser?.role === 'student' ? 'default' : 'secondary'}>
-              {qrModalUser?.role === 'student' ? 'Murid' : 'Karyawan'}
+            <Badge variant={roleBadgeVariant(qrModalUser?.role)}>
+              {roleLabel(qrModalUser?.role)}
             </Badge>
             {qrModalUser && (
-              <QRCodeDisplay
-                value={qrModalUser.qr_code}
-                userName={qrModalUser.name}
-                size={200}
-              />
+              <QRCodeDisplay value={qrModalUser.qr_code} userName={qrModalUser.name} size={200} />
             )}
             <p className="text-xs text-muted-foreground font-mono break-all text-center">
               {qrModalUser?.qr_code}
             </p>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Konfirmasi Hapus Permanen */}
+      <Dialog open={!!deleteConfirmUser} onClose={() => !deleting && setDeleteConfirmUser(null)}>
+        <DialogContent onClose={deleting ? undefined : () => setDeleteConfirmUser(null)} className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Hapus Pengguna Permanen</DialogTitle>
+          </DialogHeader>
+          <div className="p-6 pt-2 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Anda akan menghapus{' '}
+              <strong className="text-foreground">{deleteConfirmUser?.name}</strong>{' '}
+              secara permanen.
+            </p>
+            <div className="bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2 text-sm text-destructive">
+              ⚠ Seluruh data absensi historis pengguna ini akan ikut terhapus dan tidak bisa dipulihkan.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmUser(null)} disabled={deleting}>
+              Batal
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteUser} disabled={deleting}>
+              {deleting ? <Spinner size="sm" className="mr-2" /> : <Trash2 className="h-4 w-4 mr-1.5" />}
+              {deleting ? 'Menghapus...' : 'Hapus Permanen'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Layout>

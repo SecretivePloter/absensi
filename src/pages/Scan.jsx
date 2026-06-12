@@ -6,9 +6,8 @@ import { supabase } from '../lib/supabase'
 import { QRScanner } from '../components/QRScanner'
 import { Spinner } from '../components/ui/spinner'
 
-// Jeda minimal sebelum scan ke-2 dihitung sebagai absen pulang —
-// mencegah scan ganda tak sengaja langsung tercatat pulang
 const CHECKOUT_MIN_GAP_MS = 5 * 60 * 1000
+const EARLY_CHECKOUT_HOUR = 17
 
 function getGreeting(date) {
   const h = date.getHours()
@@ -20,6 +19,12 @@ function getGreeting(date) {
 
 const firstName = (name) => (name || '').trim().split(/\s+/)[0]
 
+const roleLabel = (role) => {
+  if (role === 'student') return 'Murid'
+  if (role === 'sensei') return 'Sensei'
+  return 'Staff'
+}
+
 const playAudio = (src) => {
   try {
     const audio = new Audio(src)
@@ -28,25 +33,30 @@ const playAudio = (src) => {
   } catch (_) {}
 }
 
+const REASONS = [
+  { value: 'izin', label: 'Izin', icon: '📋' },
+  { value: 'sakit', label: 'Sakit', icon: '🏥' },
+  { value: 'dinas_keluar', label: 'Dinas Keluar', icon: '🚗' },
+  { value: 'others', label: 'Lainnya', icon: '📝' },
+]
+
 export default function Scan() {
   const [now, setNow] = useState(new Date())
-  const [scanState, setScanState] = useState('idle') // idle | processing | success | checkout | duplicate | error
+  const [scanState, setScanState] = useState('idle') // idle | processing | reason | success | checkout | duplicate | error
   const [result, setResult] = useState(null)
   const [locations, setLocations] = useState([])
   const [locationId, setLocationId] = useState(() => localStorage.getItem('scan_location_id') || '')
+  const [earlyCheckout, setEarlyCheckout] = useState(null) // { user, existingId, checkInAt }
   const lockRef = useRef(false)
 
-  // Jam real-time
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(t)
   }, [])
 
-  // Ambil daftar lokasi
   useEffect(() => {
     supabase.from('locations').select('id, name').order('name').then(({ data }) => {
       setLocations(data || [])
-      // Bersihkan pilihan tersimpan yang lokasinya sudah dihapus
       const saved = localStorage.getItem('scan_location_id')
       if (saved && data && !data.some(l => l.id === saved)) {
         localStorage.removeItem('scan_location_id')
@@ -135,7 +145,6 @@ export default function Scan() {
       if (!existing.check_out_at) {
         const sinceCheckIn = Date.now() - new Date(existing.check_in_at).getTime()
 
-        // Terlalu cepat → anggap scan ganda, jangan catat pulang
         if (sinceCheckIn < CHECKOUT_MIN_GAP_MS) {
           setResult({ type: 'duplicate', user, checkInAt: existing.check_in_at })
           setScanState('duplicate')
@@ -143,11 +152,19 @@ export default function Scan() {
           return
         }
 
+        // Pulang lebih awal → tampilkan pilihan alasan
+        if (new Date().getHours() < EARLY_CHECKOUT_HOUR) {
+          setEarlyCheckout({ user, existingId: existing.id, checkInAt: existing.check_in_at })
+          setScanState('reason')
+          // lockRef tetap true — dilepas setelah reason dipilih
+          return
+        }
+
+        // Pulang normal (≥ 17:00)
         const { error: updateErr } = await supabase
           .from('attendance')
           .update({ check_out_at: new Date().toISOString() })
           .eq('id', existing.id)
-
         if (updateErr) throw updateErr
 
         setResult({ type: 'checkout', user, checkInAt: existing.check_in_at })
@@ -170,9 +187,48 @@ export default function Scan() {
       console.error(err)
       setResult({ type: 'error', message: 'Terjadi kesalahan sistem' })
       setScanState('error')
-      finish(2500)
+      setTimeout(() => {
+        setScanState('idle')
+        setResult(null)
+        lockRef.current = false
+      }, 2500)
     }
   }, [locationId])
+
+  const handleReasonSelect = useCallback(async (reason) => {
+    if (!earlyCheckout) return
+    setScanState('processing')
+    try {
+      const { error } = await supabase
+        .from('attendance')
+        .update({
+          check_out_at: new Date().toISOString(),
+          early_checkout_reason: reason,
+        })
+        .eq('id', earlyCheckout.existingId)
+      if (error) throw error
+
+      setResult({ type: 'checkout', user: earlyCheckout.user, checkInAt: earlyCheckout.checkInAt })
+      setScanState('checkout')
+      playAudio('/audio/pulang.mp3')
+      setTimeout(() => {
+        setScanState('idle')
+        setResult(null)
+        setEarlyCheckout(null)
+        lockRef.current = false
+      }, 5000)
+    } catch (err) {
+      console.error(err)
+      setResult({ type: 'error', message: 'Gagal menyimpan alasan' })
+      setScanState('error')
+      setTimeout(() => {
+        setScanState('idle')
+        setResult(null)
+        setEarlyCheckout(null)
+        lockRef.current = false
+      }, 2500)
+    }
+  }, [earlyCheckout])
 
   const currentLocationName = locations.find(l => l.id === locationId)?.name
 
@@ -185,7 +241,6 @@ export default function Scan() {
           <h1 className="font-bold text-sm leading-none hidden sm:block">Absensi QR</h1>
         </div>
 
-        {/* Pemilih lokasi */}
         <div className="flex items-center gap-2 min-w-0">
           <MapPin className={`h-4 w-4 shrink-0 ${locationId ? 'text-green-400' : 'text-yellow-400'}`} />
           <select
@@ -210,14 +265,12 @@ export default function Scan() {
         </div>
       </div>
 
-      {/* Peringatan jika lokasi belum dipilih */}
       {locations.length > 0 && !locationId && (
         <div className="bg-yellow-500/20 border-b border-yellow-500/40 text-yellow-300 text-center text-sm py-2 px-4">
           ⚠ Pilih lokasi kantor di atas — absensi tanpa lokasi tetap tercatat tapi tidak diketahui kantornya
         </div>
       )}
 
-      {/* Main content — scanner selalu ter-mount, hasil tampil sebagai overlay */}
       <div className="flex-1 relative flex flex-col items-center justify-center px-4 py-8">
         <div className="w-full max-w-sm">
           <p className="text-center text-gray-300 mb-2">Arahkan QR code ke kamera</p>
@@ -237,10 +290,37 @@ export default function Scan() {
         {/* Overlay hasil scan */}
         {scanState !== 'idle' && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-900/95 backdrop-blur-sm px-4">
+
             {scanState === 'processing' && (
               <div className="flex flex-col items-center gap-4 animate-fade-in">
                 <Spinner size="lg" className="text-blue-400" />
                 <p className="text-gray-300">Memproses...</p>
+              </div>
+            )}
+
+            {/* PILIH ALASAN PULANG LEBIH AWAL */}
+            {scanState === 'reason' && earlyCheckout && (
+              <div className="flex flex-col items-center gap-6 animate-fade-in text-center max-w-xs w-full">
+                <div>
+                  <p className="text-orange-300/90 text-xl">Pulang lebih awal,</p>
+                  <h2 className="text-4xl font-bold mt-1">{firstName(earlyCheckout.user.name)}</h2>
+                  <p className="text-gray-400 text-sm mt-2">
+                    Masuk {format(new Date(earlyCheckout.checkInAt), 'HH:mm')}
+                  </p>
+                </div>
+                <p className="text-gray-300 text-sm font-medium">Pilih alasan kepulangan:</p>
+                <div className="grid grid-cols-2 gap-3 w-full">
+                  {REASONS.map(({ value, label, icon }) => (
+                    <button
+                      key={value}
+                      onClick={() => handleReasonSelect(value)}
+                      className="bg-gray-700 hover:bg-gray-600 active:scale-95 transition-all rounded-xl p-4 text-center border border-gray-600 hover:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    >
+                      <div className="text-2xl mb-2">{icon}</div>
+                      <div className="font-medium text-sm">{label}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -249,11 +329,7 @@ export default function Scan() {
               <div className="flex flex-col items-center gap-5 animate-fade-in text-center">
                 <div className="relative">
                   {result.user.photo_url ? (
-                    <img
-                      src={result.user.photo_url}
-                      alt={result.user.name}
-                      className="h-28 w-28 rounded-full object-cover border-4 border-green-500"
-                    />
+                    <img src={result.user.photo_url} alt={result.user.name} className="h-28 w-28 rounded-full object-cover border-4 border-green-500" />
                   ) : (
                     <div className="h-28 w-28 rounded-full bg-green-500/20 border-4 border-green-500 flex items-center justify-center text-4xl font-bold text-green-400">
                       {result.user.name?.charAt(0)?.toUpperCase()}
@@ -267,7 +343,7 @@ export default function Scan() {
                   <p className="text-xl text-green-300/90">{result.greeting},</p>
                   <h2 className="text-4xl font-bold mt-1">{firstName(result.user.name)}</h2>
                   <p className="text-gray-400 text-sm mt-2">
-                    {result.user.role === 'student' ? 'Murid' : 'Karyawan'}
+                    {roleLabel(result.user.role)}
                     {result.user.classes?.name ? ` — ${result.user.classes.name}` : ''}
                   </p>
                 </div>
@@ -285,11 +361,7 @@ export default function Scan() {
               <div className="flex flex-col items-center gap-5 animate-fade-in text-center">
                 <div className="relative">
                   {result.user.photo_url ? (
-                    <img
-                      src={result.user.photo_url}
-                      alt={result.user.name}
-                      className="h-28 w-28 rounded-full object-cover border-4 border-blue-500"
-                    />
+                    <img src={result.user.photo_url} alt={result.user.name} className="h-28 w-28 rounded-full object-cover border-4 border-blue-500" />
                   ) : (
                     <div className="h-28 w-28 rounded-full bg-blue-500/20 border-4 border-blue-500 flex items-center justify-center text-4xl font-bold text-blue-400">
                       {result.user.name?.charAt(0)?.toUpperCase()}
@@ -322,9 +394,7 @@ export default function Scan() {
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold">{firstName(result.user.name)}</h2>
-                  <p className="text-gray-400 text-sm">
-                    {result.user.role === 'student' ? 'Murid' : 'Karyawan'}
-                  </p>
+                  <p className="text-gray-400 text-sm">{roleLabel(result.user.role)}</p>
                 </div>
                 <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-xl px-6 py-3">
                   {result.type === 'done' ? (
@@ -361,7 +431,6 @@ export default function Scan() {
         )}
       </div>
 
-      {/* Footer */}
       <div className="px-6 py-3 bg-gray-800/80 flex justify-between items-center text-xs text-gray-500">
         <span>Layar otomatis kembali normal setelah beberapa detik</span>
         <a href="/dashboard" className="text-blue-400 hover:text-blue-300">
