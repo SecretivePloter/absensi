@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
-import { CheckCircle2, XCircle, AlertCircle, MapPin, LogOut } from 'lucide-react'
+import { CheckCircle2, XCircle, AlertCircle, MapPin, LogOut, Maximize, Minimize } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { QRScanner } from '../components/QRScanner'
 import { Spinner } from '../components/ui/spinner'
@@ -231,22 +231,35 @@ export default function Scan() {
   }, [earlyCheckout])
 
   const currentLocationName = locations.find(l => l.id === locationId)?.name
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [])
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {})
+    } else {
+      document.exitFullscreen().catch(() => {})
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
-      {/* Header bar */}
-      <div className="flex items-center justify-between px-6 py-4 bg-gray-800/80 backdrop-blur-sm gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <img src="/logo.png" alt="Ichikara" className="h-9 w-auto bg-white rounded-md px-2 py-1 shrink-0" />
-          <h1 className="font-bold text-sm leading-none hidden sm:block">Absensi QR</h1>
-        </div>
+    <div className="h-screen bg-gray-900 text-white flex flex-col overflow-hidden">
 
-        <div className="flex items-center gap-2 min-w-0">
-          <MapPin className={`h-4 w-4 shrink-0 ${locationId ? 'text-green-400' : 'text-yellow-400'}`} />
+      {/* Header compact */}
+      <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/90 backdrop-blur-sm border-b border-gray-700 shrink-0">
+        <img src="/logo.png" alt="Ichikara" className="h-7 w-auto bg-white rounded px-1.5 py-0.5 shrink-0" />
+
+        <div className="flex items-center gap-1 flex-1 min-w-0">
+          <MapPin className={`h-3.5 w-3.5 shrink-0 ${locationId ? 'text-green-400' : 'text-yellow-400'}`} />
           <select
             value={locationId}
             onChange={handleLocationChange}
-            className="bg-gray-700 text-white text-sm rounded-md px-3 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[180px] truncate"
+            className="bg-gray-700 text-white text-xs rounded px-2 py-1.5 border border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 flex-1 min-w-0 truncate"
           >
             <option value="">Pilih Lokasi…</option>
             {locations.map(l => (
@@ -256,33 +269,43 @@ export default function Scan() {
         </div>
 
         <div className="text-right shrink-0">
-          <div className="text-2xl font-mono font-bold tabular-nums">
+          <div className="text-base font-mono font-bold tabular-nums leading-none">
             {format(now, 'HH:mm:ss')}
           </div>
-          <div className="text-xs text-gray-400">
-            {format(now, 'EEEE, d MMMM yyyy', { locale: id })}
+          <div className="text-[10px] text-gray-400 leading-none mt-0.5">
+            {format(now, 'EEE, d MMM yyyy', { locale: id })}
           </div>
         </div>
+
+        <button
+          onClick={toggleFullscreen}
+          className="ml-1 p-1.5 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition-colors shrink-0"
+          title={isFullscreen ? 'Keluar fullscreen' : 'Fullscreen'}
+        >
+          {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+        </button>
       </div>
 
+      {/* Warning lokasi */}
       {locations.length > 0 && !locationId && (
-        <div className="bg-yellow-500/20 border-b border-yellow-500/40 text-yellow-300 text-center text-sm py-2 px-4">
-          ⚠ Pilih lokasi kantor di atas — absensi tanpa lokasi tetap tercatat tapi tidak diketahui kantornya
+        <div className="bg-yellow-500/20 border-b border-yellow-500/40 text-yellow-300 text-center text-xs py-1.5 px-4 shrink-0">
+          ⚠ Pilih lokasi agar absensi tercatat lengkap
         </div>
       )}
 
-      <div className="flex-1 relative flex flex-col items-center justify-center px-4 py-8">
-        <div className="w-full max-w-sm">
-          <p className="text-center text-gray-300 mb-2">Arahkan QR code ke kamera</p>
-          {currentLocationName && (
-            <p className="text-center text-xs text-green-400/80 mb-4 flex items-center justify-center gap-1">
-              <MapPin className="h-3 w-3" /> {currentLocationName}
-            </p>
-          )}
-          <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-700">
+      {/* Scanner area — mengisi sisa layar */}
+      <div className="flex-1 relative flex flex-col items-center justify-center px-3 py-3 min-h-0">
+        <div className="w-full max-w-sm flex flex-col h-full justify-center gap-2">
+          <p className="text-center text-gray-400 text-xs">
+            Arahkan QR code ke kamera
+            {currentLocationName && (
+              <span className="text-green-400"> · {currentLocationName}</span>
+            )}
+          </p>
+          <div className="rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex-1 max-h-[70vh]">
             <QRScanner onScan={handleScan} />
           </div>
-          <p className="text-center text-xs text-gray-500 mt-4">
+          <p className="text-center text-[11px] text-gray-600">
             Scan pertama = masuk · scan kedua = pulang
           </p>
         </div>
@@ -294,30 +317,30 @@ export default function Scan() {
             {scanState === 'processing' && (
               <div className="flex flex-col items-center gap-4 animate-fade-in">
                 <Spinner size="lg" className="text-blue-400" />
-                <p className="text-gray-300">Memproses...</p>
+                <p className="text-gray-300 text-sm">Memproses...</p>
               </div>
             )}
 
             {/* PILIH ALASAN PULANG LEBIH AWAL */}
             {scanState === 'reason' && earlyCheckout && (
-              <div className="flex flex-col items-center gap-6 animate-fade-in text-center max-w-xs w-full">
+              <div className="flex flex-col items-center gap-4 animate-fade-in text-center max-w-xs w-full">
                 <div>
-                  <p className="text-orange-300/90 text-xl">Pulang lebih awal,</p>
-                  <h2 className="text-4xl font-bold mt-1">{firstName(earlyCheckout.user.name)}</h2>
-                  <p className="text-gray-400 text-sm mt-2">
+                  <p className="text-orange-300/90 text-base">Pulang lebih awal,</p>
+                  <h2 className="text-3xl font-bold mt-1">{firstName(earlyCheckout.user.name)}</h2>
+                  <p className="text-gray-400 text-xs mt-1">
                     Masuk {format(new Date(earlyCheckout.checkInAt), 'HH:mm')}
                   </p>
                 </div>
-                <p className="text-gray-300 text-sm font-medium">Pilih alasan kepulangan:</p>
-                <div className="grid grid-cols-2 gap-3 w-full">
+                <p className="text-gray-300 text-xs font-medium">Pilih alasan kepulangan:</p>
+                <div className="grid grid-cols-2 gap-2 w-full">
                   {REASONS.map(({ value, label, icon }) => (
                     <button
                       key={value}
                       onClick={() => handleReasonSelect(value)}
-                      className="bg-gray-700 hover:bg-gray-600 active:scale-95 transition-all rounded-xl p-4 text-center border border-gray-600 hover:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                      className="bg-gray-700 hover:bg-gray-600 active:scale-95 transition-all rounded-xl p-3 text-center border border-gray-600 hover:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400"
                     >
-                      <div className="text-2xl mb-2">{icon}</div>
-                      <div className="font-medium text-sm">{label}</div>
+                      <div className="text-xl mb-1">{icon}</div>
+                      <div className="font-medium text-xs">{label}</div>
                     </button>
                   ))}
                 </div>
@@ -326,29 +349,29 @@ export default function Scan() {
 
             {/* MASUK */}
             {scanState === 'success' && result?.user && (
-              <div className="flex flex-col items-center gap-5 animate-fade-in text-center">
+              <div className="flex flex-col items-center gap-4 animate-fade-in text-center">
                 <div className="relative">
                   {result.user.photo_url ? (
-                    <img src={result.user.photo_url} alt={result.user.name} className="h-28 w-28 rounded-full object-cover border-4 border-green-500" />
+                    <img src={result.user.photo_url} alt={result.user.name} className="h-24 w-24 rounded-full object-cover border-4 border-green-500" />
                   ) : (
-                    <div className="h-28 w-28 rounded-full bg-green-500/20 border-4 border-green-500 flex items-center justify-center text-4xl font-bold text-green-400">
+                    <div className="h-24 w-24 rounded-full bg-green-500/20 border-4 border-green-500 flex items-center justify-center text-3xl font-bold text-green-400">
                       {result.user.name?.charAt(0)?.toUpperCase()}
                     </div>
                   )}
                   <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full p-1 animate-check-bounce">
-                    <CheckCircle2 className="h-7 w-7 text-white" />
+                    <CheckCircle2 className="h-6 w-6 text-white" />
                   </div>
                 </div>
                 <div>
-                  <p className="text-xl text-green-300/90">{result.greeting},</p>
-                  <h2 className="text-4xl font-bold mt-1">{firstName(result.user.name)}</h2>
-                  <p className="text-gray-400 text-sm mt-2">
+                  <p className="text-base text-green-300/90">{result.greeting},</p>
+                  <h2 className="text-3xl font-bold mt-0.5">{firstName(result.user.name)}</h2>
+                  <p className="text-gray-400 text-xs mt-1">
                     {roleLabel(result.user.role)}
                     {result.user.classes?.name ? ` — ${result.user.classes.name}` : ''}
                   </p>
                 </div>
-                <div className="bg-green-500/20 border border-green-500/50 rounded-xl px-6 py-2.5">
-                  <p className="text-green-400 font-medium">
+                <div className="bg-green-500/20 border border-green-500/50 rounded-xl px-5 py-2">
+                  <p className="text-green-400 font-medium text-sm">
                     Absen masuk tercatat · {format(new Date(), 'HH:mm')}
                     {currentLocationName ? ` · ${currentLocationName}` : ''}
                   </p>
@@ -358,28 +381,28 @@ export default function Scan() {
 
             {/* PULANG */}
             {scanState === 'checkout' && result?.user && (
-              <div className="flex flex-col items-center gap-5 animate-fade-in text-center">
+              <div className="flex flex-col items-center gap-4 animate-fade-in text-center">
                 <div className="relative">
                   {result.user.photo_url ? (
-                    <img src={result.user.photo_url} alt={result.user.name} className="h-28 w-28 rounded-full object-cover border-4 border-blue-500" />
+                    <img src={result.user.photo_url} alt={result.user.name} className="h-24 w-24 rounded-full object-cover border-4 border-blue-500" />
                   ) : (
-                    <div className="h-28 w-28 rounded-full bg-blue-500/20 border-4 border-blue-500 flex items-center justify-center text-4xl font-bold text-blue-400">
+                    <div className="h-24 w-24 rounded-full bg-blue-500/20 border-4 border-blue-500 flex items-center justify-center text-3xl font-bold text-blue-400">
                       {result.user.name?.charAt(0)?.toUpperCase()}
                     </div>
                   )}
                   <div className="absolute -bottom-2 -right-2 bg-blue-500 rounded-full p-1 animate-check-bounce">
-                    <LogOut className="h-7 w-7 text-white" />
+                    <LogOut className="h-6 w-6 text-white" />
                   </div>
                 </div>
                 <div>
-                  <p className="text-xl text-blue-300/90">Sampai Jumpa,</p>
-                  <h2 className="text-4xl font-bold mt-1">{firstName(result.user.name)}</h2>
-                  <p className="text-gray-400 text-sm mt-2">
+                  <p className="text-base text-blue-300/90">Sampai Jumpa,</p>
+                  <h2 className="text-3xl font-bold mt-0.5">{firstName(result.user.name)}</h2>
+                  <p className="text-gray-400 text-xs mt-1">
                     Masuk {format(new Date(result.checkInAt), 'HH:mm')}
                   </p>
                 </div>
-                <div className="bg-blue-500/20 border border-blue-500/50 rounded-xl px-6 py-2.5">
-                  <p className="text-blue-400 font-medium">
+                <div className="bg-blue-500/20 border border-blue-500/50 rounded-xl px-5 py-2">
+                  <p className="text-blue-400 font-medium text-sm">
                     Absen pulang tercatat · {format(new Date(), 'HH:mm')}
                   </p>
                 </div>
@@ -388,27 +411,27 @@ export default function Scan() {
 
             {/* DUPLIKAT / SUDAH LENGKAP */}
             {scanState === 'duplicate' && result?.user && (
-              <div className="flex flex-col items-center gap-4 animate-fade-in text-center">
-                <div className="h-20 w-20 rounded-full bg-yellow-500/20 border-4 border-yellow-500 flex items-center justify-center">
-                  <AlertCircle className="h-10 w-10 text-yellow-400" />
+              <div className="flex flex-col items-center gap-3 animate-fade-in text-center">
+                <div className="h-16 w-16 rounded-full bg-yellow-500/20 border-4 border-yellow-500 flex items-center justify-center">
+                  <AlertCircle className="h-8 w-8 text-yellow-400" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold">{firstName(result.user.name)}</h2>
-                  <p className="text-gray-400 text-sm">{roleLabel(result.user.role)}</p>
+                  <h2 className="text-xl font-bold">{firstName(result.user.name)}</h2>
+                  <p className="text-gray-400 text-xs">{roleLabel(result.user.role)}</p>
                 </div>
-                <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-xl px-6 py-3">
+                <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-xl px-5 py-2.5">
                   {result.type === 'done' ? (
                     <>
-                      <p className="text-yellow-400 font-semibold text-lg">Absensi Hari Ini Lengkap</p>
-                      <p className="text-yellow-300/70 text-sm">
+                      <p className="text-yellow-400 font-semibold">Absensi Hari Ini Lengkap</p>
+                      <p className="text-yellow-300/70 text-xs">
                         Masuk {format(new Date(result.checkInAt), 'HH:mm')} · Pulang {format(new Date(result.checkOutAt), 'HH:mm')}
                       </p>
                     </>
                   ) : (
                     <>
-                      <p className="text-yellow-400 font-semibold text-lg">Baru Saja Absen Masuk</p>
-                      <p className="text-yellow-300/70 text-sm">
-                        Pukul {format(new Date(result.checkInAt), 'HH:mm:ss')} — scan pulang tersedia 5 menit setelah masuk
+                      <p className="text-yellow-400 font-semibold">Baru Saja Absen Masuk</p>
+                      <p className="text-yellow-300/70 text-xs">
+                        Pukul {format(new Date(result.checkInAt), 'HH:mm:ss')} — scan pulang 5 menit setelah masuk
                       </p>
                     </>
                   )}
@@ -417,13 +440,13 @@ export default function Scan() {
             )}
 
             {scanState === 'error' && (
-              <div className="flex flex-col items-center gap-4 animate-fade-in text-center">
-                <div className="h-20 w-20 rounded-full bg-red-500/20 border-4 border-red-500 flex items-center justify-center">
-                  <XCircle className="h-10 w-10 text-red-400" />
+              <div className="flex flex-col items-center gap-3 animate-fade-in text-center">
+                <div className="h-16 w-16 rounded-full bg-red-500/20 border-4 border-red-500 flex items-center justify-center">
+                  <XCircle className="h-8 w-8 text-red-400" />
                 </div>
-                <div className="bg-red-500/20 border border-red-500/50 rounded-xl px-6 py-3">
-                  <p className="text-red-400 font-semibold text-lg">Gagal</p>
-                  <p className="text-red-300/70 text-sm">{result?.message}</p>
+                <div className="bg-red-500/20 border border-red-500/50 rounded-xl px-5 py-2.5">
+                  <p className="text-red-400 font-semibold">Gagal</p>
+                  <p className="text-red-300/70 text-xs">{result?.message}</p>
                 </div>
               </div>
             )}
@@ -431,10 +454,10 @@ export default function Scan() {
         )}
       </div>
 
-      <div className="px-6 py-3 bg-gray-800/80 flex justify-between items-center text-xs text-gray-500">
-        <span>Layar otomatis kembali normal setelah beberapa detik</span>
-        <a href="/dashboard" className="text-blue-400 hover:text-blue-300">
-          Admin Dashboard →
+      {/* Footer minimal */}
+      <div className="px-4 py-1.5 bg-gray-800/80 flex justify-end items-center shrink-0">
+        <a href="/dashboard" className="text-[11px] text-blue-400/70 hover:text-blue-300">
+          Admin →
         </a>
       </div>
     </div>
