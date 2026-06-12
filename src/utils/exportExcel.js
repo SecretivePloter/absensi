@@ -97,18 +97,26 @@ function buildStyledSheet({ title, subtitle, headers, rows, centerCols = [] }) {
 const exportStamp = () =>
   `Diekspor ${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} pukul ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
 
+const earlyReasonMap = { izin: 'Izin', sakit: 'Sakit', dinas_keluar: 'Dinas Keluar', others: 'Lainnya' }
+const roleLabelExport = (role) => {
+  if (role === 'student') return 'Murid'
+  if (role === 'sensei') return 'Sensei'
+  return 'Staff'
+}
+
 export function exportAttendanceToExcel(records, filename = 'absensi') {
-  const headers = ['No', 'Nama', 'Role', 'Kelas', 'Tanggal', 'Jam Masuk', 'Jam Pulang', 'Lokasi', 'Metode', 'Catatan']
+  const headers = ['No', 'Nama', 'Role', 'Kelas', 'Tanggal', 'Jam Masuk', 'Jam Pulang', 'Alasan Pulang Awal', 'Lokasi', 'Metode', 'Catatan']
   const fmtTime = (t) =>
     t ? new Date(t).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-'
   const rows = records.map((r, i) => [
     i + 1,
     r.users?.name ?? '-',
-    r.users?.role === 'student' ? 'Murid' : 'Karyawan',
+    roleLabelExport(r.users?.role),
     r.users?.classes?.name ?? '-',
     new Date(r.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
     fmtTime(r.check_in_at),
     fmtTime(r.check_out_at),
+    earlyReasonMap[r.early_checkout_reason] ?? '-',
     r.locations?.name ?? '-',
     r.method === 'qr' ? 'QR Scan' : 'Manual',
     r.notes ?? '',
@@ -119,7 +127,7 @@ export function exportAttendanceToExcel(records, filename = 'absensi') {
     subtitle: `${exportStamp()} · ${records.length} record`,
     headers,
     rows,
-    centerCols: [0, 4, 5, 6, 8],
+    centerCols: [0, 4, 5, 6, 9],
   })
 
   const wb = XLSX.utils.book_new()

@@ -6,12 +6,34 @@ import { Spinner } from './ui/spinner'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 
+const roleLabel = (role) => {
+  if (role === 'student') return 'Murid'
+  if (role === 'sensei') return 'Sensei'
+  return 'Staff'
+}
+
+const roleBadgeVariant = (role) => {
+  if (role === 'student') return 'default'
+  if (role === 'sensei') return 'warning'
+  return 'secondary'
+}
+
+const earlyReasonLabel = (reason) => {
+  const map = { izin: 'Izin', sakit: 'Sakit', dinas_keluar: 'Dinas Keluar', others: 'Lainnya' }
+  return map[reason] ?? null
+}
+
+const earlyReasonVariant = (reason) => {
+  if (reason === 'dinas_keluar') return 'success'
+  if (reason === 'sakit') return 'warning'
+  return 'outline'
+}
+
 export function AttendanceTable({ records, loading, selectable = false, onDeleteSelected }) {
   const [selected, setSelected] = useState(() => new Set())
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  // Buang id terpilih yang sudah tidak ada lagi (mis. setelah ganti filter tanggal)
   useEffect(() => {
     setSelected(prev => {
       if (prev.size === 0) return prev
@@ -22,19 +44,11 @@ export function AttendanceTable({ records, loading, selectable = false, onDelete
   }, [records])
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Spinner size="lg" />
-      </div>
-    )
+    return <div className="flex justify-center py-12"><Spinner size="lg" /></div>
   }
 
   if (!records || records.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        Belum ada data absensi
-      </div>
-    )
+    return <div className="text-center py-12 text-muted-foreground">Belum ada data absensi</div>
   }
 
   const allIds = records.map(r => r.id)
@@ -66,7 +80,6 @@ export function AttendanceTable({ records, loading, selectable = false, onDelete
 
   return (
     <div className="space-y-3">
-      {/* Toolbar aksi (muncul saat ada yang dipilih) */}
       {selectable && selected.size > 0 && (
         <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-md px-3 py-2 animate-fade-in">
           <span className="text-sm font-medium">{selected.size} record terpilih</span>
@@ -102,6 +115,7 @@ export function AttendanceTable({ records, loading, selectable = false, onDelete
               <th className="text-left p-3 font-medium hidden md:table-cell">Kelas</th>
               <th className="text-left p-3 font-medium">Masuk</th>
               <th className="text-left p-3 font-medium">Pulang</th>
+              <th className="text-left p-3 font-medium hidden md:table-cell">Alasan</th>
               <th className="text-left p-3 font-medium hidden md:table-cell">Lokasi</th>
               <th className="text-left p-3 font-medium hidden sm:table-cell">Metode</th>
               <th className="text-left p-3 font-medium hidden lg:table-cell">Catatan</th>
@@ -129,11 +143,7 @@ export function AttendanceTable({ records, loading, selectable = false, onDelete
                 <td className="p-3">
                   <div className="flex items-center gap-2">
                     {r.users?.photo_url ? (
-                      <img
-                        src={r.users.photo_url}
-                        alt={r.users.name}
-                        className="h-7 w-7 rounded-full object-cover"
-                      />
+                      <img src={r.users.photo_url} alt={r.users.name} className="h-7 w-7 rounded-full object-cover" />
                     ) : (
                       <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
                         {r.users?.name?.charAt(0)?.toUpperCase()}
@@ -143,8 +153,8 @@ export function AttendanceTable({ records, loading, selectable = false, onDelete
                   </div>
                 </td>
                 <td className="p-3">
-                  <Badge variant={r.users?.role === 'student' ? 'default' : 'secondary'}>
-                    {r.users?.role === 'student' ? 'Murid' : 'Karyawan'}
+                  <Badge variant={roleBadgeVariant(r.users?.role)}>
+                    {roleLabel(r.users?.role)}
                   </Badge>
                 </td>
                 <td className="p-3 hidden md:table-cell text-muted-foreground">
@@ -154,7 +164,19 @@ export function AttendanceTable({ records, loading, selectable = false, onDelete
                   {format(new Date(r.check_in_at), 'HH:mm:ss')}
                 </td>
                 <td className="p-3 font-mono text-xs">
-                  {r.check_out_at ? format(new Date(r.check_out_at), 'HH:mm:ss') : <span className="text-muted-foreground">—</span>}
+                  {r.check_out_at
+                    ? format(new Date(r.check_out_at), 'HH:mm:ss')
+                    : <span className="text-muted-foreground">—</span>
+                  }
+                </td>
+                <td className="p-3 hidden md:table-cell">
+                  {r.early_checkout_reason ? (
+                    <Badge variant={earlyReasonVariant(r.early_checkout_reason)}>
+                      {earlyReasonLabel(r.early_checkout_reason)}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
                 </td>
                 <td className="p-3 hidden md:table-cell text-muted-foreground text-xs">
                   {r.locations?.name ?? '-'}
@@ -173,7 +195,6 @@ export function AttendanceTable({ records, loading, selectable = false, onDelete
         </table>
       </div>
 
-      {/* Dialog konfirmasi hapus */}
       <Dialog open={confirmOpen} onClose={() => !deleting && setConfirmOpen(false)}>
         <DialogContent onClose={deleting ? undefined : () => setConfirmOpen(false)} className="max-w-sm">
           <DialogHeader>

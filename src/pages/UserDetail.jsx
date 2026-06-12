@@ -119,8 +119,8 @@ export default function UserDetail() {
               <div className="flex-1">
                 <h1 className="text-2xl font-bold">{user.name}</h1>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge variant={user.role === 'student' ? 'default' : 'secondary'}>
-                    {user.role === 'student' ? 'Murid' : 'Karyawan'}
+                  <Badge variant={user.role === 'student' ? 'default' : user.role === 'sensei' ? 'warning' : 'secondary'}>
+                    {user.role === 'student' ? 'Murid' : user.role === 'sensei' ? 'Sensei' : 'Staff'}
                   </Badge>
                   {user.classes && <Badge variant="outline">{user.classes.name}</Badge>}
                   <Badge variant={user.is_active ? 'success' : 'outline'}>
@@ -243,6 +243,7 @@ export default function UserDetail() {
                     <th className="text-left p-3 font-medium">Tanggal</th>
                     <th className="text-left p-3 font-medium">Masuk</th>
                     <th className="text-left p-3 font-medium">Pulang</th>
+                    <th className="text-left p-3 font-medium hidden md:table-cell">Alasan</th>
                     <th className="text-left p-3 font-medium hidden md:table-cell">Lokasi</th>
                     <th className="text-left p-3 font-medium">Metode</th>
                     <th className="text-left p-3 font-medium hidden sm:table-cell">Catatan</th>
@@ -258,6 +259,13 @@ export default function UserDetail() {
                       <td className="p-3 font-mono text-xs">
                         {r.check_out_at ? format(new Date(r.check_out_at), 'HH:mm:ss') : <span className="text-muted-foreground">—</span>}
                       </td>
+                      <td className="p-3 hidden md:table-cell">
+                        {r.early_checkout_reason ? (
+                          <Badge variant={r.early_checkout_reason === 'dinas_keluar' ? 'success' : r.early_checkout_reason === 'sakit' ? 'warning' : 'outline'}>
+                            {{ izin: 'Izin', sakit: 'Sakit', dinas_keluar: 'Dinas Keluar', others: 'Lainnya' }[r.early_checkout_reason]}
+                          </Badge>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </td>
                       <td className="p-3 hidden md:table-cell text-muted-foreground text-xs">
                         {r.locations?.name ?? '-'}
                       </td>
@@ -272,7 +280,7 @@ export default function UserDetail() {
                     </tr>
                   ))}
                   {paged.length === 0 && (
-                    <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Belum ada riwayat</td></tr>
+                    <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Belum ada riwayat</td></tr>
                   )}
                 </tbody>
               </table>
