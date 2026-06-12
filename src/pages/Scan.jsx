@@ -20,6 +20,14 @@ function getGreeting(date) {
 
 const firstName = (name) => (name || '').trim().split(/\s+/)[0]
 
+const playAudio = (src) => {
+  try {
+    const audio = new Audio(src)
+    audio.volume = 1.0
+    audio.play().catch(() => {})
+  } catch (_) {}
+}
+
 export default function Scan() {
   const [now, setNow] = useState(new Date())
   const [scanState, setScanState] = useState('idle') // idle | processing | success | checkout | duplicate | error
@@ -118,7 +126,8 @@ export default function Scan() {
 
         setResult({ type: 'success', user, greeting: getGreeting(new Date()) })
         setScanState('success')
-        finish(2000)
+        playAudio('/audio/datang.mp3')
+        finish(5000)
         return
       }
 
@@ -143,7 +152,8 @@ export default function Scan() {
 
         setResult({ type: 'checkout', user, checkInAt: existing.check_in_at })
         setScanState('checkout')
-        finish(2000)
+        playAudio('/audio/pulang.mp3')
+        finish(5000)
         return
       }
 
