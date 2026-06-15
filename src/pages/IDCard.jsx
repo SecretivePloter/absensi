@@ -45,11 +45,11 @@ async function printIDCard(user) {
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   @page {
-    size: 54mm 86mm;
+    size: 55mm 87mm;
     margin: 0;
   }
   body {
-    width: 54mm;
+    width: 55mm;
     font-family: 'Arial', sans-serif;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -57,11 +57,13 @@ async function printIDCard(user) {
 
   /* ===== CARD WRAPPER ===== */
   .card {
-    width: 54mm;
-    height: 86mm;
+    width: 55mm;
+    height: 87mm;
     overflow: hidden;
     page-break-after: always;
     position: relative;
+    border: 0.4mm solid #1d4ed8;
+    border-radius: 3mm;
   }
 
   /* ===== FRONT ===== */
@@ -276,7 +278,7 @@ export default function IDCard() {
         <div>
           <h1 className="text-2xl font-bold">ID Card Generator</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Cetak kartu identitas 2 sisi · ukuran standar 54 × 86mm (portrait)
+            Cetak kartu identitas 2 sisi · ukuran 5,5 × 8,7 cm (portrait)
           </p>
         </div>
 
@@ -306,7 +308,7 @@ export default function IDCard() {
 
         {/* Info tip */}
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg px-4 py-3 text-sm text-blue-700 dark:text-blue-300">
-          💡 Setelah klik <strong>Cetak</strong>, dialog print akan muncul. Pilih <strong>"Save as PDF"</strong> untuk simpan, atau pilih printer untuk langsung cetak. Pastikan ukuran kertas diatur ke <strong>54 × 86mm</strong>.
+          💡 Setelah klik <strong>Cetak</strong>, dialog print akan muncul. Pilih <strong>"Save as PDF"</strong> untuk simpan, atau pilih printer untuk langsung cetak. Pastikan ukuran kertas diatur ke <strong>55 × 87mm</strong> dan margin <strong>None</strong>.
         </div>
 
         {loading ? (
