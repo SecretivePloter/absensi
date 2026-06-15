@@ -22,6 +22,7 @@ const firstName = (name) => (name || '').trim().split(/\s+/)[0]
 const roleLabel = (role) => {
   if (role === 'student') return 'Murid'
   if (role === 'sensei') return 'Sensei'
+  if (role === 'asisten_sensei') return 'Asisten Sensei'
   return 'Staff'
 }
 

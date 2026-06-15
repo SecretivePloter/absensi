@@ -119,8 +119,8 @@ export default function UserDetail() {
               <div className="flex-1">
                 <h1 className="text-2xl font-bold">{user.name}</h1>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge variant={user.role === 'student' ? 'default' : user.role === 'sensei' ? 'warning' : 'secondary'}>
-                    {user.role === 'student' ? 'Murid' : user.role === 'sensei' ? 'Sensei' : 'Staff'}
+                  <Badge variant={user.role === 'student' ? 'default' : (user.role === 'sensei' || user.role === 'asisten_sensei') ? 'warning' : 'secondary'}>
+                    {{ student: 'Murid', sensei: 'Sensei', asisten_sensei: 'Asisten Sensei' }[user.role] ?? 'Staff'}
                   </Badge>
                   {user.classes && <Badge variant="outline">{user.classes.name}</Badge>}
                   <Badge variant={user.is_active ? 'success' : 'outline'}>

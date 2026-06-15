@@ -21,12 +21,14 @@ const emptyForm = { name: '', role: 'student', class_id: '', phone: '', qr_code:
 const roleLabel = (role) => {
   if (role === 'student') return 'Murid'
   if (role === 'sensei') return 'Sensei'
+  if (role === 'asisten_sensei') return 'Asisten Sensei'
   return 'Staff'
 }
 
 const roleBadgeVariant = (role) => {
   if (role === 'student') return 'default'
   if (role === 'sensei') return 'warning'
+  if (role === 'asisten_sensei') return 'warning'
   return 'secondary'
 }
 
@@ -226,6 +228,7 @@ export default function Users() {
                 <option value="student">Murid</option>
                 <option value="staff">Staff</option>
                 <option value="sensei">Sensei</option>
+                <option value="asisten_sensei">Asisten Sensei</option>
                 <option value="employee">Lama (employee)</option>
               </Select>
               <Select value={classFilter} onChange={e => setClassFilter(e.target.value)} className="w-40">
@@ -355,6 +358,7 @@ export default function Users() {
                     <option value="student">Murid</option>
                     <option value="staff">Staff</option>
                     <option value="sensei">Sensei</option>
+                    <option value="asisten_sensei">Asisten Sensei</option>
                   </Select>
                 </div>
                 <div className="space-y-2">

@@ -9,12 +9,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 const roleLabel = (role) => {
   if (role === 'student') return 'Murid'
   if (role === 'sensei') return 'Sensei'
+  if (role === 'asisten_sensei') return 'Asisten Sensei'
   return 'Staff'
 }
 
 const roleBadgeVariant = (role) => {
   if (role === 'student') return 'default'
   if (role === 'sensei') return 'warning'
+  if (role === 'asisten_sensei') return 'warning'
   return 'secondary'
 }
 

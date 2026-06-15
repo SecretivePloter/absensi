@@ -44,7 +44,7 @@ export default function Dashboard() {
     const [{ count: todayCount }, { count: studentCount }, { count: employeeCount }, { count: totalActive }] = await Promise.all([
       supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('date', today),
       supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true),
-      supabase.from('users').select('*', { count: 'exact', head: true }).in('role', ['employee', 'staff', 'sensei']).eq('is_active', true),
+      supabase.from('users').select('*', { count: 'exact', head: true }).in('role', ['employee', 'staff', 'sensei', 'asisten_sensei']).eq('is_active', true),
       supabase.from('users').select('*', { count: 'exact', head: true }).eq('is_active', true),
     ])
 
@@ -210,6 +210,7 @@ export default function Dashboard() {
                   <option value="student">Murid</option>
                   <option value="staff">Staff</option>
                   <option value="sensei">Sensei</option>
+                  <option value="asisten_sensei">Asisten Sensei</option>
                   <option value="employee">Lama (employee)</option>
                 </Select>
                 <Select
