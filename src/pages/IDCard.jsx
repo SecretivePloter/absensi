@@ -69,32 +69,36 @@ async function printIDCard(user) {
     background: #ffffff;
     display: flex;
     flex-direction: column;
+    align-items: center;
   }
 
   .front-header {
-    background: linear-gradient(160deg, #1e3a8a 0%, #1d4ed8 100%);
-    height: 24mm;
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 1.5mm;
-    padding: 3mm 4mm;
+    gap: 1mm;
+    padding: 6mm 4mm 4mm;
   }
   .front-header-logo {
-    height: 9mm;
+    height: 8mm;
     width: auto;
-    background: white;
-    border-radius: 1.5mm;
-    padding: 1mm 3mm;
     object-fit: contain;
   }
   .front-header-name {
-    color: rgba(255,255,255,0.85);
+    color: #1e3a8a;
     font-size: 6pt;
     font-weight: bold;
     letter-spacing: 1.5px;
     text-transform: uppercase;
+  }
+
+  .front-accent {
+    width: 14mm;
+    height: 0.6mm;
+    background: #1d4ed8;
+    border-radius: 1mm;
+    margin-top: 1mm;
   }
 
   .front-body {
@@ -102,44 +106,37 @@ async function printIDCard(user) {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f8fafc;
-    padding: 4mm 0;
+    padding: 3mm 0;
   }
-  .photo-ring {
-    width: 26mm;
-    height: 26mm;
-    border-radius: 50%;
-    border: 2mm solid #1d4ed8;
+  .photo-box {
+    width: 32mm;
+    height: 38mm;
+    border-radius: 2.5mm;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #dbeafe;
-    box-shadow: 0 2mm 6mm rgba(29,78,216,0.25);
+    background: #f1f5f9;
   }
 
   .front-footer {
-    background: linear-gradient(160deg, #1e3a8a 0%, #1d4ed8 100%);
-    padding: 3mm 4mm;
+    width: 100%;
+    padding: 4mm 4mm 6mm;
     text-align: center;
   }
   .footer-name {
-    color: white;
-    font-size: 9pt;
+    color: #0f172a;
+    font-size: 11pt;
     font-weight: bold;
-    letter-spacing: 0.3px;
-  }
-  .footer-divider {
-    width: 20mm;
-    height: 0.3mm;
-    background: rgba(255,255,255,0.3);
-    margin: 1.5mm auto;
+    letter-spacing: 0.2px;
   }
   .footer-role {
-    color: #bfdbfe;
-    font-size: 6.5pt;
+    color: #1d4ed8;
+    font-size: 7pt;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
+    margin-top: 1mm;
   }
 
   /* ===== BACK ===== */
@@ -208,13 +205,13 @@ async function printIDCard(user) {
   <div class="front-header">
     <img class="front-header-logo" src="${logoUrl}" onerror="this.style.display='none'" />
     <div class="front-header-name">PT. Ichikara</div>
+    <div class="front-accent"></div>
   </div>
   <div class="front-body">
-    <div class="photo-ring">${photoTag}</div>
+    <div class="photo-box">${photoTag}</div>
   </div>
   <div class="front-footer">
     <div class="footer-name">${user.name}</div>
-    <div class="footer-divider"></div>
     <div class="footer-role">${label}</div>
   </div>
 </div>
