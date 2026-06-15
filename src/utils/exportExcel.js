@@ -101,6 +101,7 @@ const earlyReasonMap = { izin: 'Izin', sakit: 'Sakit', dinas_keluar: 'Dinas Kelu
 const roleLabelExport = (role) => {
   if (role === 'student') return 'Murid'
   if (role === 'sensei') return 'Sensei'
+  if (role === 'asisten_sensei') return 'Asisten Sensei'
   return 'Staff'
 }
 

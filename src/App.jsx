@@ -13,6 +13,7 @@ import UserDetail from './pages/UserDetail'
 import Classes from './pages/Classes'
 import Locations from './pages/Locations'
 import ManualAttendance from './pages/ManualAttendance'
+import IDCard from './pages/IDCard'
 
 function AuthGuard() {
   const { user, loading } = useAuthStore()
@@ -55,6 +56,7 @@ const router = createBrowserRouter([
       { path: 'classes', element: <Classes /> },
       { path: 'locations', element: <Locations /> },
       { path: 'attendance/manual', element: <ManualAttendance /> },
+      { path: 'id-card', element: <IDCard /> },
     ],
   },
   { path: '*', element: <Navigate to="/dashboard" replace /> },

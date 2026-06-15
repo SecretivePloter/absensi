@@ -164,7 +164,7 @@ export default function ManualAttendance() {
                         >
                           <span>{u.name}</span>
                           <span className="text-xs text-muted-foreground">
-                            {u.role === 'student' ? 'Murid' : u.role === 'sensei' ? 'Sensei' : 'Staff'}
+                            {{ student: 'Murid', sensei: 'Sensei', asisten_sensei: 'Asisten Sensei' }[u.role] ?? 'Staff'}
                             {u.classes ? ` — ${u.classes.name}` : ''}
                           </span>
                         </button>
