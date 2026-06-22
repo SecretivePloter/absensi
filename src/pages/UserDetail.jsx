@@ -10,14 +10,25 @@ import { ExportButton } from '../components/ExportButton'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog'
+import { Label } from '../components/ui/label'
 import { Spinner } from '../components/ui/spinner'
+import { useToast } from '../components/ui/toast'
 import { clsx } from 'clsx'
+
+const toLocalTimeStr = (iso) => iso ? format(new Date(iso), 'HH:mm') : ''
+const buildISO = (dateStr, timeStr) => {
+  if (!timeStr) return null
+  const [h, m] = timeStr.split(':').map(Number)
+  const [y, mo, d] = dateStr.split('-').map(Number)
+  return new Date(y, mo - 1, d, h, m, 0).toISOString()
+}
 
 const PAGE_SIZE = 15
 
 export default function UserDetail() {
   const { id: userId } = useParams()
+  const toast = useToast()
   const [user, setUser] = useState(null)
   const [attendance, setAttendance] = useState([])
   const [loading, setLoading] = useState(true)
@@ -25,6 +36,37 @@ export default function UserDetail() {
   const [viewMonth, setViewMonth] = useState(new Date())
   const [page, setPage] = useState(0)
   const [stats, setStats] = useState({ thisMonth: 0, percentage: 0, avgHour: null })
+
+  // Edit jam
+  const [editTime, setEditTime] = useState(null) // { id, date, checkIn, checkOut }
+  const [editStep, setEditStep] = useState('edit')
+  const [savingTime, setSavingTime] = useState(false)
+
+  const openEditTime = (r) => {
+    setEditTime({ id: r.id, date: r.date, checkIn: toLocalTimeStr(r.check_in_at), checkOut: toLocalTimeStr(r.check_out_at) })
+    setEditStep('edit')
+  }
+  const closeEditTime = () => { setEditTime(null); setEditStep('edit') }
+
+  const saveEditTime = async () => {
+    if (!editTime) return
+    setSavingTime(true)
+    try {
+      const updates = {
+        check_in_at: editTime.checkIn ? buildISO(editTime.date, editTime.checkIn) : null,
+        check_out_at: editTime.checkOut ? buildISO(editTime.date, editTime.checkOut) : null,
+      }
+      const { error } = await supabase.from('attendance').update(updates).eq('id', editTime.id)
+      if (error) throw error
+      setAttendance(prev => prev.map(r => r.id === editTime.id ? { ...r, ...updates } : r))
+      toast({ title: 'Jam absensi diperbarui', variant: 'success' })
+      closeEditTime()
+    } catch (err) {
+      toast({ title: 'Gagal menyimpan', description: err.message, variant: 'error' })
+    } finally {
+      setSavingTime(false)
+    }
+  }
 
   const fetchUser = useCallback(async () => {
     const { data } = await supabase
@@ -247,6 +289,7 @@ export default function UserDetail() {
                     <th className="text-left p-3 font-medium hidden md:table-cell">Lokasi</th>
                     <th className="text-left p-3 font-medium">Metode</th>
                     <th className="text-left p-3 font-medium hidden sm:table-cell">Catatan</th>
+                    <th className="p-3 w-10" />
                   </tr>
                 </thead>
                 <tbody>
@@ -255,12 +298,18 @@ export default function UserDetail() {
                       <td className="p-3 font-medium">
                         {format(new Date(r.date), 'EEE, d MMM yyyy', { locale: id })}
                       </td>
-                      <td className="p-3 font-mono text-xs">{format(new Date(r.check_in_at), 'HH:mm:ss')}</td>
+                      <td className="p-3 font-mono text-xs">
+                        {r.check_in_at ? format(new Date(r.check_in_at), 'HH:mm:ss') : <span className="text-muted-foreground">—</span>}
+                      </td>
                       <td className="p-3 font-mono text-xs">
                         {r.check_out_at ? format(new Date(r.check_out_at), 'HH:mm:ss') : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="p-3 hidden md:table-cell">
-                        {r.early_checkout_reason ? (
+                        {r.absence_reason ? (
+                          <Badge variant={r.absence_reason === 'sakit' ? 'warning' : 'outline'}>
+                            {r.absence_reason === 'sakit' ? 'Sakit' : 'Izin'}
+                          </Badge>
+                        ) : r.early_checkout_reason ? (
                           <Badge variant={r.early_checkout_reason === 'dinas_keluar' ? 'success' : r.early_checkout_reason === 'sakit' ? 'warning' : 'outline'}>
                             {{ izin: 'Izin', sakit: 'Sakit', dinas_keluar: 'Dinas Keluar', others: 'Lainnya' }[r.early_checkout_reason]}
                           </Badge>
@@ -277,10 +326,17 @@ export default function UserDetail() {
                       <td className="p-3 hidden sm:table-cell text-muted-foreground text-xs">
                         {r.notes || '-'}
                       </td>
+                      <td className="p-3">
+                        <button onClick={() => openEditTime(r)}
+                          className="p-1.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                          title="Edit jam masuk / pulang">
+                          <Clock className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                   {paged.length === 0 && (
-                    <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Belum ada riwayat</td></tr>
+                    <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">Belum ada riwayat</td></tr>
                   )}
                 </tbody>
               </table>
@@ -316,6 +372,76 @@ export default function UserDetail() {
             <QRCodeDisplay value={user.qr_code} userName={user.name} size={200} />
             <p className="text-xs text-muted-foreground font-mono break-all text-center">{user.qr_code}</p>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit jam — step 1: form */}
+      <Dialog open={!!editTime && editStep === 'edit'} onClose={closeEditTime}>
+        <DialogContent onClose={closeEditTime} className="max-w-sm">
+          <DialogHeader><DialogTitle>Edit Jam Absensi</DialogTitle></DialogHeader>
+          {editTime && (
+            <div className="px-6 pb-2 space-y-4">
+              <div className="bg-muted/50 rounded-lg px-4 py-2.5 text-sm">
+                <span className="font-medium">{user.name}</span>
+                <span className="text-muted-foreground ml-2">
+                  · {format(new Date(editTime.date + 'T12:00:00'), 'EEEE, d MMM yyyy', { locale: id })}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Jam Masuk</Label>
+                  <input type="time" value={editTime.checkIn}
+                    onChange={e => setEditTime(t => ({ ...t, checkIn: e.target.value }))}
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Jam Pulang</Label>
+                  <input type="time" value={editTime.checkOut}
+                    onChange={e => setEditTime(t => ({ ...t, checkOut: e.target.value }))}
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                  <p className="text-[10px] text-muted-foreground">Kosongkan jika belum pulang</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={closeEditTime}>Batal</Button>
+            <Button onClick={() => setEditStep('confirm')} disabled={!editTime?.checkIn}>Lanjut →</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit jam — step 2: konfirmasi */}
+      <Dialog open={!!editTime && editStep === 'confirm'} onClose={() => setEditStep('edit')}>
+        <DialogContent onClose={() => setEditStep('edit')} className="max-w-sm">
+          <DialogHeader><DialogTitle>Konfirmasi Perubahan</DialogTitle></DialogHeader>
+          {editTime && (
+            <div className="px-6 pb-2 space-y-3 text-sm">
+              <p className="text-muted-foreground">
+                Anda akan mengubah jam absensi <strong className="text-foreground">{user.name}</strong>:
+              </p>
+              <div className="bg-muted/50 rounded-lg divide-y text-sm">
+                <div className="flex justify-between px-4 py-2.5">
+                  <span className="text-muted-foreground">Jam Masuk</span>
+                  <span className="font-mono font-medium">{editTime.checkIn || '—'}</span>
+                </div>
+                <div className="flex justify-between px-4 py-2.5">
+                  <span className="text-muted-foreground">Jam Pulang</span>
+                  <span className="font-mono font-medium">{editTime.checkOut || '—'}</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Perubahan ini akan langsung tersimpan ke database dan tidak bisa dibatalkan.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditStep('edit')} disabled={savingTime}>← Kembali</Button>
+            <Button onClick={saveEditTime} disabled={savingTime}>
+              {savingTime ? <Spinner size="sm" className="mr-2" /> : null}
+              {savingTime ? 'Menyimpan...' : 'Ya, Simpan'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Layout>

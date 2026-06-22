@@ -261,6 +261,13 @@ export default function Dashboard() {
     setRecords(prev => prev.map(r => r.id === id ? { ...r, notes: note || null } : r))
   }
 
+  const handleUpdateTime = async (id, { check_in_at, check_out_at }) => {
+    const { error } = await supabase.from('attendance').update({ check_in_at, check_out_at }).eq('id', id)
+    if (error) { toast({ title: 'Gagal menyimpan jam', description: error.message, variant: 'error' }); throw error }
+    toast({ title: 'Jam absensi diperbarui', variant: 'success' })
+    setRecords(prev => prev.map(r => r.id === id ? { ...r, check_in_at, check_out_at } : r))
+  }
+
   // ── Group tabs ────────────────────────────────────────────────────────────────
   const groupTabs = [
     { key: 'all', label: 'Semua' },
@@ -401,6 +408,7 @@ export default function Dashboard() {
               selectable
               onDeleteSelected={handleDeleteRecords}
               onUpdateNote={handleUpdateNote}
+              onUpdateTime={handleUpdateTime}
             />
           </CardContent>
         </Card>
