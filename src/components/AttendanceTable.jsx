@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Pencil, Check, X } from 'lucide-react'
 import { Badge } from './ui/badge'
 import { Spinner } from './ui/spinner'
 import { Button } from './ui/button'
@@ -31,10 +31,39 @@ const earlyReasonVariant = (reason) => {
   return 'outline'
 }
 
-export function AttendanceTable({ records, loading, selectable = false, onDeleteSelected }) {
+export function AttendanceTable({ records, loading, selectable = false, onDeleteSelected, onUpdateNote }) {
   const [selected, setSelected] = useState(() => new Set())
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [editingNote, setEditingNote] = useState(null) // { id, value }
+  const [savingNote, setSavingNote] = useState(false)
+  const noteInputRef = useRef(null)
+
+  useEffect(() => {
+    if (editingNote) noteInputRef.current?.focus()
+  }, [editingNote])
+
+  const startEditNote = (r) => {
+    setEditingNote({ id: r.id, value: r.notes ?? '' })
+  }
+
+  const cancelEditNote = () => setEditingNote(null)
+
+  const saveNote = async () => {
+    if (!editingNote || !onUpdateNote) return
+    setSavingNote(true)
+    try {
+      await onUpdateNote(editingNote.id, editingNote.value.trim())
+      setEditingNote(null)
+    } finally {
+      setSavingNote(false)
+    }
+  }
+
+  const handleNoteKeyDown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); saveNote() }
+    if (e.key === 'Escape') cancelEditNote()
+  }
 
   useEffect(() => {
     setSelected(prev => {
@@ -120,7 +149,7 @@ export function AttendanceTable({ records, loading, selectable = false, onDelete
               <th className="text-left p-3 font-medium hidden md:table-cell">Alasan</th>
               <th className="text-left p-3 font-medium hidden md:table-cell">Lokasi</th>
               <th className="text-left p-3 font-medium hidden sm:table-cell">Metode</th>
-              <th className="text-left p-3 font-medium hidden lg:table-cell">Catatan</th>
+              {onUpdateNote && <th className="text-left p-3 font-medium hidden lg:table-cell">Catatan</th>}
             </tr>
           </thead>
           <tbody>
@@ -188,9 +217,50 @@ export function AttendanceTable({ records, loading, selectable = false, onDelete
                     {r.method === 'qr' ? 'QR Scan' : 'Manual'}
                   </Badge>
                 </td>
-                <td className="p-3 hidden lg:table-cell text-muted-foreground text-xs">
-                  {r.notes || '-'}
-                </td>
+                {onUpdateNote && (
+                  <td className="p-3 hidden lg:table-cell">
+                    {editingNote?.id === r.id ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          ref={noteInputRef}
+                          value={editingNote.value}
+                          onChange={e => setEditingNote(n => ({ ...n, value: e.target.value }))}
+                          onKeyDown={handleNoteKeyDown}
+                          placeholder="Tulis catatan..."
+                          className="flex-1 text-xs border border-input rounded px-2 py-1 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-0 w-36"
+                          disabled={savingNote}
+                        />
+                        <button
+                          onClick={saveNote}
+                          disabled={savingNote}
+                          className="p-1 rounded text-green-600 hover:bg-green-50 dark:hover:bg-green-950 disabled:opacity-50"
+                          title="Simpan"
+                        >
+                          {savingNote ? <Spinner size="sm" /> : <Check className="h-3.5 w-3.5" />}
+                        </button>
+                        <button
+                          onClick={cancelEditNote}
+                          disabled={savingNote}
+                          className="p-1 rounded text-muted-foreground hover:bg-muted"
+                          title="Batal"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        className="group flex items-center gap-1.5 cursor-pointer"
+                        onClick={() => startEditNote(r)}
+                        title="Klik untuk edit catatan"
+                      >
+                        <span className="text-xs text-muted-foreground">
+                          {r.notes || <span className="italic">Tambah catatan...</span>}
+                        </span>
+                        <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-60 transition-opacity shrink-0" />
+                      </div>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

@@ -231,6 +231,16 @@ export default function Dashboard() {
     handleRefresh()
   }
 
+  const handleUpdateNote = async (id, note) => {
+    const { error } = await supabase.from('attendance').update({ notes: note || null }).eq('id', id)
+    if (error) {
+      toast({ title: 'Gagal menyimpan catatan', description: error.message, variant: 'error' })
+      throw error
+    }
+    toast({ title: 'Catatan disimpan', variant: 'success' })
+    setRecords(prev => prev.map(r => r.id === id ? { ...r, notes: note || null } : r))
+  }
+
   // Group tab options
   const groupTabs = [
     { key: 'all', label: 'Semua' },
@@ -417,6 +427,7 @@ export default function Dashboard() {
               loading={loading}
               selectable
               onDeleteSelected={handleDeleteRecords}
+              onUpdateNote={handleUpdateNote}
             />
           </CardContent>
         </Card>
