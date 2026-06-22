@@ -192,16 +192,21 @@ export function AttendanceTable({ records, loading, selectable = false, onDelete
                   {r.users?.classes?.name ?? '-'}
                 </td>
                 <td className="p-3 font-mono text-xs">
-                  {format(new Date(r.check_in_at), 'HH:mm:ss')}
+                  {r.check_in_at
+                    ? format(new Date(r.check_in_at), 'HH:mm:ss')
+                    : <span className="text-muted-foreground">—</span>}
                 </td>
                 <td className="p-3 font-mono text-xs">
                   {r.check_out_at
                     ? format(new Date(r.check_out_at), 'HH:mm:ss')
-                    : <span className="text-muted-foreground">—</span>
-                  }
+                    : <span className="text-muted-foreground">—</span>}
                 </td>
                 <td className="p-3 hidden md:table-cell">
-                  {r.early_checkout_reason ? (
+                  {r.absence_reason ? (
+                    <Badge variant={r.absence_reason === 'sakit' ? 'warning' : 'outline'}>
+                      {r.absence_reason === 'sakit' ? 'Sakit' : 'Izin'}
+                    </Badge>
+                  ) : r.early_checkout_reason ? (
                     <Badge variant={earlyReasonVariant(r.early_checkout_reason)}>
                       {earlyReasonLabel(r.early_checkout_reason)}
                     </Badge>
