@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { format, subDays } from 'date-fns'
 import { id } from 'date-fns/locale'
-import { Users, UserCheck, TrendingUp, UserX, RefreshCw } from 'lucide-react'
+import { Users, UserCheck, TrendingUp, UserX, RefreshCw, Clock } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
@@ -14,9 +14,14 @@ import { Input } from '../components/ui/input'
 import { Select } from '../components/ui/select'
 import { Button } from '../components/ui/button'
 import { Spinner } from '../components/ui/spinner'
+import { Badge } from '../components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { useToast } from '../components/ui/toast'
 
 const STAFF_ROLES = ['staff', 'sensei', 'asisten_sensei', 'employee']
+
+const ROLE_LABEL = { student: 'Murid', sensei: 'Sensei', asisten_sensei: 'Asisten Sensei', staff: 'Staff', employee: 'Staff' }
+const roleLabel = (r) => ROLE_LABEL[r] ?? r
 
 export default function Dashboard() {
   const toast = useToast()
@@ -37,6 +42,51 @@ export default function Dashboard() {
   const [chartData, setChartData] = useState([])
   const [loading, setLoading] = useState(true)
   const [statsLoading, setStatsLoading] = useState(true)
+  const [detailModal, setDetailModal] = useState(null) // { title, type:'hadir'|'tidak_hadir', rows:[], loading }
+
+  const openDetail = useCallback(async (type) => {
+    setDetailModal({ title: '', type, rows: [], loading: true })
+    const today = format(new Date(), 'yyyy-MM-dd')
+
+    let groupUserIds = null // null = semua
+
+    if (groupFilter === 'staff') {
+      const { data } = await supabase.from('users').select('id, name, role').in('role', STAFF_ROLES).eq('is_active', true)
+      groupUserIds = data || []
+    } else if (groupFilter !== 'all') {
+      const { data } = await supabase.from('users').select('id, name, role').eq('class_id', groupFilter).eq('is_active', true)
+      groupUserIds = data || []
+    } else {
+      const { data } = await supabase.from('users').select('id, name, role').eq('is_active', true)
+      groupUserIds = data || []
+    }
+
+    const ids = groupUserIds.map(u => u.id)
+    const userMap = Object.fromEntries(groupUserIds.map(u => [u.id, u]))
+
+    let rows = []
+    if (type === 'hadir') {
+      const query = supabase.from('attendance').select('user_id, check_in_at, check_out_at').eq('date', today)
+      const { data: attRows } = ids.length > 0 ? await query.in('user_id', ids) : await query
+      rows = (attRows || []).map(a => ({
+        name: userMap[a.user_id]?.name ?? '—',
+        role: userMap[a.user_id]?.role ?? '',
+        check_in_at: a.check_in_at,
+        check_out_at: a.check_out_at,
+      })).sort((a, b) => a.name.localeCompare(b.name, 'id'))
+    } else {
+      const query = supabase.from('attendance').select('user_id').eq('date', today)
+      const { data: attRows } = ids.length > 0 ? await query.in('user_id', ids) : await query
+      const hadirSet = new Set((attRows || []).map(a => a.user_id))
+      rows = groupUserIds.filter(u => !hadirSet.has(u.id))
+        .map(u => ({ name: u.name, role: u.role }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'id'))
+    }
+
+    const titleMap = { hadir: 'Sudah Hadir', tidak_hadir: 'Belum Hadir' }
+    const groupLabel = groupFilter === 'all' ? 'Semua' : groupFilter === 'staff' ? 'Staff & Sensei' : `Murid ${classes.find(c => c.id === groupFilter)?.name ?? ''}`
+    setDetailModal({ title: `${titleMap[type]} — ${groupLabel}`, type, rows, loading: false })
+  }, [groupFilter, classes])
 
   // Load lookup tables once
   const fetchLookups = useCallback(async () => {
@@ -191,16 +241,16 @@ export default function Dashboard() {
   // Stat cards based on mode
   const statCards = stats?.mode === 'all'
     ? [
-        { title: 'Hadir Hari Ini', value: stats.hadir, icon: UserCheck, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-950' },
-        { title: 'Total Murid Aktif', value: stats.totalMurid, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950' },
-        { title: 'Total Staff Aktif', value: stats.totalStaff, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-950' },
-        { title: 'Persentase Kehadiran', value: `${stats.persentase}%`, icon: TrendingUp, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950' },
+        { title: 'Hadir Hari Ini', value: stats.hadir, icon: UserCheck, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-950', clickType: 'hadir' },
+        { title: 'Total Murid Aktif', value: stats.totalMurid, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950', clickType: null },
+        { title: 'Total Staff Aktif', value: stats.totalStaff, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-950', clickType: null },
+        { title: 'Persentase Kehadiran', value: `${stats.persentase}%`, icon: TrendingUp, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950', clickType: null },
       ]
     : [
-        { title: 'Hadir Hari Ini', value: stats?.hadir ?? '-', icon: UserCheck, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-950' },
-        { title: 'Total Anggota Aktif', value: stats?.total ?? '-', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950' },
-        { title: 'Belum Hadir', value: stats?.tidakHadir ?? '-', icon: UserX, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950' },
-        { title: 'Persentase Kehadiran', value: stats ? `${stats.persentase}%` : '-', icon: TrendingUp, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950' },
+        { title: 'Hadir Hari Ini', value: stats?.hadir ?? '-', icon: UserCheck, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-950', clickType: 'hadir' },
+        { title: 'Total Anggota Aktif', value: stats?.total ?? '-', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950', clickType: null },
+        { title: 'Belum Hadir', value: stats?.tidakHadir ?? '-', icon: UserX, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950', clickType: 'tidak_hadir' },
+        { title: 'Persentase Kehadiran', value: stats ? `${stats.persentase}%` : '-', icon: TrendingUp, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950', clickType: null },
       ]
 
   return (
@@ -249,13 +299,20 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {statCards.map(({ title, value, icon: Icon, color, bg }) => (
-              <Card key={title}>
+            {statCards.map(({ title, value, icon: Icon, color, bg, clickType }) => (
+              <Card
+                key={title}
+                onClick={clickType ? () => openDetail(clickType) : undefined}
+                className={clickType ? 'cursor-pointer hover:shadow-md hover:border-primary/40 transition-all' : ''}
+              >
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground leading-tight">{title}</p>
                       <p className="text-3xl font-bold mt-1">{value}</p>
+                      {clickType && (
+                        <p className="text-xs text-muted-foreground mt-1 underline underline-offset-2">Lihat daftar</p>
+                      )}
                     </div>
                     <div className={`p-2 rounded-lg ${bg}`}>
                       <Icon className={`h-5 w-5 ${color}`} />
@@ -364,6 +421,57 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Detail Modal */}
+      <Dialog open={!!detailModal} onClose={() => setDetailModal(null)}>
+        <DialogContent onClose={() => setDetailModal(null)} className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{detailModal?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="px-6 pb-6">
+            {detailModal?.loading ? (
+              <div className="flex justify-center py-8"><Spinner size="lg" /></div>
+            ) : detailModal?.rows?.length === 0 ? (
+              <p className="text-center text-muted-foreground py-6 text-sm">Tidak ada data</p>
+            ) : (
+              <ul className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                {detailModal.rows.map((row, i) => (
+                  <li key={i} className="flex items-center justify-between gap-2 py-1.5 border-b last:border-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                        {row.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{row.name}</p>
+                        <p className="text-xs text-muted-foreground">{roleLabel(row.role)}</p>
+                      </div>
+                    </div>
+                    {detailModal.type === 'hadir' && row.check_in_at && (
+                      <div className="text-right shrink-0">
+                        <div className="flex items-center gap-1 text-xs text-green-600">
+                          <Clock className="h-3 w-3" />
+                          {format(new Date(row.check_in_at), 'HH:mm')}
+                        </div>
+                        {row.check_out_at && (
+                          <div className="text-xs text-muted-foreground">
+                            Pulang {format(new Date(row.check_out_at), 'HH:mm')}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {detailModal.type === 'tidak_hadir' && (
+                      <Badge variant="outline" className="text-xs shrink-0">Alpha</Badge>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-xs text-muted-foreground mt-3 text-center">
+              {detailModal?.rows?.length ?? 0} orang · {format(new Date(), 'd MMM yyyy', { locale: id })}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   )
 }
