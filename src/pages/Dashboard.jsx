@@ -82,13 +82,25 @@ export default function Dashboard() {
 
         let hadirCount = 0, izinSakitCount = 0
         if (ids.length > 0) {
-          const { data: attRows } = await supabase
+          // Coba dengan absence_reason; fallback jika kolom belum ada (migration 006 belum dijalankan)
+          let attRecords = []
+          const { data: attRows, error: attErr } = await supabase
             .from('attendance')
             .select('user_id, check_in_at, absence_reason')
             .eq('date', today)
             .in('user_id', ids)
 
-          const attRecords = attRows || []
+          if (attErr) {
+            const { data: fallback } = await supabase
+              .from('attendance')
+              .select('user_id, check_in_at')
+              .eq('date', today)
+              .in('user_id', ids)
+            attRecords = (fallback || []).map(r => ({ ...r, absence_reason: null }))
+          } else {
+            attRecords = attRows || []
+          }
+
           const hadirSet = new Set(attRecords.filter(a => a.check_in_at).map(a => a.user_id))
           const izinSakitSet = new Set(attRecords.filter(a => a.absence_reason).map(a => a.user_id))
           hadirCount = hadirSet.size
@@ -171,11 +183,25 @@ export default function Dashboard() {
     const ids = groupUsers.map(u => u.id)
     const userMap = Object.fromEntries(groupUsers.map(u => [u.id, u]))
 
-    const { data: attRows } = ids.length > 0
-      ? await supabase.from('attendance').select('user_id, check_in_at, check_out_at, absence_reason').eq('date', today).in('user_id', ids)
-      : { data: [] }
+    let att = []
+    if (ids.length > 0) {
+      const { data: attRows, error: attErr } = await supabase
+        .from('attendance')
+        .select('user_id, check_in_at, check_out_at, absence_reason')
+        .eq('date', today)
+        .in('user_id', ids)
 
-    const att = attRows || []
+      if (attErr) {
+        const { data: fallback } = await supabase
+          .from('attendance')
+          .select('user_id, check_in_at, check_out_at')
+          .eq('date', today)
+          .in('user_id', ids)
+        att = (fallback || []).map(r => ({ ...r, absence_reason: null }))
+      } else {
+        att = attRows || []
+      }
+    }
     const hadirMap = Object.fromEntries(att.filter(a => a.check_in_at).map(a => [a.user_id, a]))
     const izinSakitMap = Object.fromEntries(att.filter(a => a.absence_reason).map(a => [a.user_id, a]))
     const allAttSet = new Set(att.map(a => a.user_id))
