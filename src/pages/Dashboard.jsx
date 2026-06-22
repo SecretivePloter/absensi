@@ -433,16 +433,16 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Detail Modal */}
+      {/* Detail Modal — render hanya saat data tersedia */}
       <Dialog open={!!detailModal} onClose={() => setDetailModal(null)}>
         <DialogContent onClose={() => setDetailModal(null)} className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>{detailModal?.title}</DialogTitle>
+            <DialogTitle>{detailModal?.title ?? ''}</DialogTitle>
           </DialogHeader>
           <div className="px-6 pb-6">
-            {detailModal?.loading ? (
+            {!detailModal || detailModal.loading ? (
               <div className="flex justify-center py-8"><Spinner size="lg" /></div>
-            ) : detailModal?.rows?.length === 0 ? (
+            ) : detailModal.rows.length === 0 ? (
               <p className="text-center text-muted-foreground py-6 text-sm">Tidak ada data</p>
             ) : (
               <ul className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
