@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '../components/ui/label'
 import { Spinner } from '../components/ui/spinner'
 import { useToast } from '../components/ui/toast'
+import { getHolidayName } from '../lib/holidays'
 import { clsx } from 'clsx'
 
 const toLocalTimeStr = (iso) => iso ? format(new Date(iso), 'HH:mm') : ''
@@ -241,13 +242,18 @@ export default function UserDetail() {
                 const dayStr = format(day, 'yyyy-MM-dd')
                 const present = presentDays.includes(dayStr)
                 const isToday = isSameDay(day, new Date())
+                const holidayName = getHolidayName(dayStr)
+                const isSunday = day.getDay() === 0
+                const isLibur = !!holidayName || isSunday
                 return (
                   <div
                     key={dayStr}
+                    title={holidayName || (isSunday ? 'Hari Minggu' : undefined)}
                     className={clsx(
                       'rounded-md py-1.5 text-xs font-medium transition-colors',
                       present && 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                      !present && 'text-muted-foreground',
+                      !present && isLibur && 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+                      !present && !isLibur && 'text-muted-foreground',
                       isToday && !present && 'ring-1 ring-primary',
                     )}
                   >
@@ -256,10 +262,32 @@ export default function UserDetail() {
                 )
               })}
             </div>
-            <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
+            {/* Daftar libur nasional bulan ini */}
+            {(() => {
+              const liburBulanIni = monthDays
+                .map(d => ({ str: format(d, 'yyyy-MM-dd'), name: getHolidayName(format(d, 'yyyy-MM-dd')), date: d }))
+                .filter(d => d.name)
+              if (liburBulanIni.length === 0) return null
+              return (
+                <div className="mt-3 space-y-1">
+                  {liburBulanIni.map(h => (
+                    <p key={h.str} className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                      <span className="inline-block h-2 w-2 rounded-full bg-red-500 shrink-0" />
+                      <span className="font-medium">{format(h.date, 'd MMM', { locale: id })}</span>
+                      <span className="text-muted-foreground">— {h.name}</span>
+                    </p>
+                  ))}
+                </div>
+              )
+            })()}
+            <div className="flex flex-wrap gap-4 mt-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="inline-block h-3 w-3 rounded bg-green-200 dark:bg-green-900" />
                 Hadir
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-3 w-3 rounded bg-red-200 dark:bg-red-900/60" />
+                Libur / Tanggal Merah
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="inline-block h-3 w-3 rounded bg-muted" />
