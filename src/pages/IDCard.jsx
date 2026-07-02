@@ -7,22 +7,7 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Badge } from '../components/ui/badge'
 import { Spinner } from '../components/ui/spinner'
-
-const ROLE_LABEL = {
-  student: 'Murid',
-  sensei: 'Sensei',
-  asisten_sensei: 'Asisten Sensei',
-  staff: 'Staff',
-  employee: 'Staff',
-}
-
-const roleLabel = (role) => ROLE_LABEL[role] ?? 'Staff'
-
-const roleBadge = (role) => {
-  if (role === 'student') return 'default'
-  if (role === 'sensei' || role === 'asisten_sensei') return 'warning'
-  return 'secondary'
-}
+import { useRoles, roleLabel, roleBadgeVariant as roleBadge } from '../store/useRolesStore'
 
 async function printIDCard(user) {
   const qrDataUrl = await QRCodeLib.toDataURL(user.qr_code, {
@@ -242,6 +227,7 @@ async function printIDCard(user) {
 }
 
 export default function IDCard() {
+  const roles = useRoles()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -299,10 +285,7 @@ export default function IDCard() {
             className="h-9 rounded-md border border-input bg-background px-3 text-sm"
           >
             <option value="all">Semua Role</option>
-            <option value="student">Murid</option>
-            <option value="staff">Staff</option>
-            <option value="sensei">Sensei</option>
-            <option value="asisten_sensei">Asisten Sensei</option>
+            {roles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
         </div>
 

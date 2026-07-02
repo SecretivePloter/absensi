@@ -17,13 +17,11 @@ import { Spinner } from '../components/ui/spinner'
 import { Badge } from '../components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { useToast } from '../components/ui/toast'
-
-const STAFF_ROLES = ['staff', 'sensei', 'asisten_sensei', 'employee']
-const ROLE_LABEL = { student: 'Murid', sensei: 'Sensei', asisten_sensei: 'Asisten Sensei', staff: 'Staff', employee: 'Staff' }
-const roleLabel = (r) => ROLE_LABEL[r] ?? r
+import { useRoles, roleLabel, staffRoleValues } from '../store/useRolesStore'
 
 export default function Dashboard() {
   const toast = useToast()
+  const roles = useRoles()
 
   const [groupFilter, setGroupFilter] = useState('all')
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
@@ -54,6 +52,7 @@ export default function Dashboard() {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true)
     const today = format(new Date(), 'yyyy-MM-dd')
+    const STAFF_ROLES = staffRoleValues(roles)
     try {
       if (groupFilter === 'all') {
         const [{ count: hadirCount }, { count: muridCount }, { count: staffCount }, { count: totalCount }] = await Promise.all([
@@ -125,7 +124,7 @@ export default function Dashboard() {
     } finally {
       setStatsLoading(false)
     }
-  }, [groupFilter, classes])
+  }, [groupFilter, classes, roles])
 
   // ── Chart ────────────────────────────────────────────────────────────────────
   const fetchChartData = useCallback(async () => {
@@ -167,6 +166,7 @@ export default function Dashboard() {
   const openDetail = useCallback(async (type) => {
     setDetailModal({ title: '', type, rows: [], loading: true })
     const today = format(new Date(), 'yyyy-MM-dd')
+    const STAFF_ROLES = staffRoleValues(roles)
 
     let groupUsers = []
     if (groupFilter === 'all') {
@@ -240,7 +240,7 @@ export default function Dashboard() {
     }
 
     setDetailModal({ title, type, rows, loading: false })
-  }, [groupFilter, classes])
+  }, [groupFilter, classes, roles])
 
   // ── Mark absence (izin/sakit) ────────────────────────────────────────────────
   const handleMarkAbsence = useCallback(async (userId, reason) => {
@@ -409,11 +409,7 @@ export default function Dashboard() {
                 <Input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="w-auto text-sm h-9" />
                 <Select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="w-auto h-9 text-sm">
                   <option value="all">Semua Role</option>
-                  <option value="student">Murid</option>
-                  <option value="staff">Staff</option>
-                  <option value="sensei">Sensei</option>
-                  <option value="asisten_sensei">Asisten Sensei</option>
-                  <option value="employee">Lama (employee)</option>
+                  {roles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </Select>
                 <Select value={classFilter} onChange={e => setClassFilter(e.target.value)} className="w-auto h-9 text-sm">
                   <option value="all">Semua Kelas</option>

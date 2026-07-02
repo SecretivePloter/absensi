@@ -5,6 +5,7 @@ import { CheckCircle2, XCircle, AlertCircle, MapPin, LogOut, Maximize, Minimize 
 import { supabase } from '../lib/supabase'
 import { QRScanner } from '../components/QRScanner'
 import { Spinner } from '../components/ui/spinner'
+import { useRoles, roleLabel } from '../store/useRolesStore'
 
 const CHECKOUT_MIN_GAP_MS = 5 * 60 * 1000
 const EARLY_CHECKOUT_HOUR = 17
@@ -18,13 +19,6 @@ function getGreeting(date) {
 }
 
 const firstName = (name) => (name || '').trim().split(/\s+/)[0]
-
-const roleLabel = (role) => {
-  if (role === 'student') return 'Murid'
-  if (role === 'sensei') return 'Sensei'
-  if (role === 'asisten_sensei') return 'Asisten Sensei'
-  return 'Staff'
-}
 
 const playAudio = (src) => {
   try {
@@ -42,6 +36,7 @@ const REASONS = [
 ]
 
 export default function Scan() {
+  useRoles() // muat label role (termasuk role custom) untuk tampilan kiosk
   const [now, setNow] = useState(new Date())
   const [scanState, setScanState] = useState('idle') // idle | processing | reason | success | checkout | duplicate | error
   const [result, setResult] = useState(null)

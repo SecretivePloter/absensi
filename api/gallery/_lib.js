@@ -6,17 +6,45 @@
 import { google } from 'googleapis'
 
 /**
- * Membuat klien Google Drive memakai Service Account dari env var.
- * Env var yang dibutuhkan (set di Vercel -> Project -> Settings -> Environment Variables):
- *   - GDRIVE_CLIENT_EMAIL : email service account
- *   - GDRIVE_PRIVATE_KEY  : private key (boleh ber-\n literal, akan dinormalisasi)
- *   - GDRIVE_FOLDER_ID    : id folder Drive tujuan upload
+ * Membuat klien Google Drive.
+ *
+ * Mendukung 2 mode auth (dipilih otomatis):
+ *
+ * 1) OAuth "atas nama user" (DIUTAMAKAN) — cocok untuk menyimpan ke Google Drive
+ *    akun personal/Gmail (mis. mugenworklabs@gmail.com). File dimiliki akun user
+ *    dan memakai KUOTA Drive-nya, sehingga tidak kena error
+ *    "Service Accounts do not have storage quota".
+ *    Env var:
+ *      - GOOGLE_OAUTH_CLIENT_ID
+ *      - GOOGLE_OAUTH_CLIENT_SECRET
+ *      - GOOGLE_OAUTH_REFRESH_TOKEN  (dibuat sekali via scripts/get-drive-token.mjs)
+ *      - GDRIVE_FOLDER_ID            (folder tujuan, dibuat oleh script itu)
+ *
+ * 2) Service Account (fallback) — hanya cocok bila folder tujuan berada di
+ *    Shared Drive (Workspace), karena service account tak punya kuota di My Drive.
+ *    Env var:
+ *      - GDRIVE_CLIENT_EMAIL
+ *      - GDRIVE_PRIVATE_KEY
+ *      - GDRIVE_FOLDER_ID
  */
 export function getDrive() {
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN
+  if (refreshToken) {
+    const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID
+    const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET
+    if (!clientId || !clientSecret) {
+      throw new Error('OAuth Google belum lengkap (GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET).')
+    }
+    const oauth2 = new google.auth.OAuth2(clientId, clientSecret)
+    oauth2.setCredentials({ refresh_token: refreshToken })
+    return google.drive({ version: 'v3', auth: oauth2 })
+  }
+
+  // Fallback: Service Account (hanya untuk Shared Drive).
   const email = process.env.GDRIVE_CLIENT_EMAIL
   const key = (process.env.GDRIVE_PRIVATE_KEY || '').replace(/\\n/g, '\n')
   if (!email || !key) {
-    throw new Error('Kredensial Google Drive belum diset (GDRIVE_CLIENT_EMAIL / GDRIVE_PRIVATE_KEY).')
+    throw new Error('Kredensial Google Drive belum diset (OAuth atau Service Account).')
   }
   const auth = new google.auth.JWT({
     email,

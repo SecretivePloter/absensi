@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Edit2, QrCode, ToggleLeft, ToggleRight, Search, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useRoles, useRolesStore, roleLabel, roleBadgeVariant, slugifyRole } from '../store/useRolesStore'
 import { Layout } from '../components/Layout'
 import { QRCodeDisplay } from '../components/QRCode'
 import { Badge } from '../components/ui/badge'
@@ -18,22 +19,14 @@ import { FileSpreadsheet } from 'lucide-react'
 
 const emptyForm = { name: '', role: 'student', class_id: '', phone: '', qr_code: '', photo_url: '' }
 
-const roleLabel = (role) => {
-  if (role === 'student') return 'Murid'
-  if (role === 'sensei') return 'Sensei'
-  if (role === 'asisten_sensei') return 'Asisten Sensei'
-  return 'Staff'
-}
-
-const roleBadgeVariant = (role) => {
-  if (role === 'student') return 'default'
-  if (role === 'sensei') return 'warning'
-  if (role === 'asisten_sensei') return 'warning'
-  return 'secondary'
-}
-
 export default function Users() {
   const toast = useToast()
+  const roles = useRoles()
+  const addRole = useRolesStore(s => s.addRole)
+  // Dialog tambah role baru
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false)
+  const [newRoleLabel, setNewRoleLabel] = useState('')
+  const [savingRole, setSavingRole] = useState(false)
   const [users, setUsers] = useState([])
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
@@ -121,6 +114,32 @@ export default function Users() {
     setPhotoFile(null)
     setPhotoPreview(u.photo_url || '')
     setFormOpen(true)
+  }
+
+  const handleAddRole = async () => {
+    const label = newRoleLabel.trim()
+    if (!label) return
+    const value = slugifyRole(label)
+    if (!value) {
+      toast({ title: 'Nama role tidak valid', description: 'Gunakan huruf/angka.', variant: 'error' })
+      return
+    }
+    if (roles.some(r => r.value === value)) {
+      toast({ title: 'Role sudah ada', description: `"${label}" sudah terdaftar.`, variant: 'error' })
+      return
+    }
+    setSavingRole(true)
+    try {
+      await addRole({ value, label })
+      setForm(f => ({ ...f, role: value })) // langsung pilih role baru di form
+      toast({ title: 'Role ditambahkan', description: label, variant: 'success' })
+      setNewRoleLabel('')
+      setRoleDialogOpen(false)
+    } catch (err) {
+      toast({ title: 'Gagal menambah role', description: err.message, variant: 'error' })
+    } finally {
+      setSavingRole(false)
+    }
   }
 
   const handleSave = async (e) => {
@@ -225,11 +244,7 @@ export default function Users() {
               </div>
               <Select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="w-36">
                 <option value="all">Semua Role</option>
-                <option value="student">Murid</option>
-                <option value="staff">Staff</option>
-                <option value="sensei">Sensei</option>
-                <option value="asisten_sensei">Asisten Sensei</option>
-                <option value="employee">Lama (employee)</option>
+                {roles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </Select>
               <Select value={classFilter} onChange={e => setClassFilter(e.target.value)} className="w-40">
                 <option value="all">Semua Kelas</option>
@@ -353,12 +368,18 @@ export default function Users() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>Role *</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Role *</Label>
+                    <button
+                      type="button"
+                      onClick={() => { setNewRoleLabel(''); setRoleDialogOpen(true) }}
+                      className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
+                    >
+                      <Plus className="h-3 w-3" /> Tambah Role
+                    </button>
+                  </div>
                   <Select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
-                    <option value="student">Murid</option>
-                    <option value="staff">Staff</option>
-                    <option value="sensei">Sensei</option>
-                    <option value="asisten_sensei">Asisten Sensei</option>
+                    {roles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </Select>
                 </div>
                 <div className="space-y-2">
@@ -476,6 +497,44 @@ export default function Users() {
             <Button variant="destructive" onClick={handleDeleteUser} disabled={deleting}>
               {deleting ? <Spinner size="sm" className="mr-2" /> : <Trash2 className="h-4 w-4 mr-1.5" />}
               {deleting ? 'Menghapus...' : 'Hapus Permanen'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Tambah Role */}
+      <Dialog open={roleDialogOpen} onClose={() => !savingRole && setRoleDialogOpen(false)}>
+        <DialogContent onClose={savingRole ? undefined : () => setRoleDialogOpen(false)} className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Tambah Role Baru</DialogTitle>
+          </DialogHeader>
+          <div className="p-6 pt-2 space-y-3">
+            <div className="space-y-2">
+              <Label>Nama Role</Label>
+              <Input
+                value={newRoleLabel}
+                onChange={e => setNewRoleLabel(e.target.value)}
+                placeholder="mis. Manager, Marketing, Kepala Cabang"
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddRole() } }}
+                autoFocus
+              />
+              {newRoleLabel.trim() && (
+                <p className="text-xs text-muted-foreground">
+                  Kode role: <span className="font-mono">{slugifyRole(newRoleLabel) || '—'}</span>
+                </p>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Role baru otomatis dihitung sebagai <strong>karyawan/staff</strong> dan langsung bisa dipilih untuk pengguna.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRoleDialogOpen(false)} disabled={savingRole}>
+              Batal
+            </Button>
+            <Button onClick={handleAddRole} disabled={savingRole || !newRoleLabel.trim()}>
+              {savingRole ? <Spinner size="sm" className="mr-2" /> : <Plus className="h-4 w-4 mr-1.5" />}
+              {savingRole ? 'Menyimpan...' : 'Tambah'}
             </Button>
           </DialogFooter>
         </DialogContent>
