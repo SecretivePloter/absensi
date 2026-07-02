@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx-js-style'
+import { roleLabel } from '../store/useRolesStore'
 
 const BRAND_COLOR = '1E40AF' // biru tua
 const HEADER_FILL = { patternType: 'solid', fgColor: { rgb: BRAND_COLOR } }
@@ -98,12 +99,7 @@ const exportStamp = () =>
   `Diekspor ${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} pukul ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
 
 const earlyReasonMap = { izin: 'Izin', sakit: 'Sakit', dinas_keluar: 'Dinas Keluar', others: 'Lainnya' }
-const roleLabelExport = (role) => {
-  if (role === 'student') return 'Murid'
-  if (role === 'sensei') return 'Sensei'
-  if (role === 'asisten_sensei') return 'Asisten Sensei'
-  return 'Staff'
-}
+const roleLabelExport = (role) => roleLabel(role)
 
 export function exportAttendanceToExcel(records, filename = 'absensi') {
   const headers = ['No', 'Nama', 'Role', 'Kelas', 'Tanggal', 'Jam Masuk', 'Jam Pulang', 'Alasan Pulang Awal', 'Lokasi', 'Metode', 'Catatan']

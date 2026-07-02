@@ -30,7 +30,11 @@ export default async function handler(req, res) {
     const buffer = Buffer.from(dataBase64, 'base64')
     const drive = getDrive()
 
-    // Upload ke folder tujuan
+    // Upload ke folder tujuan.
+    // supportsAllDrives: true WAJIB agar bisa upload ke folder di dalam
+    // Shared Drive (Drive Bersama). Ini solusi untuk error
+    // "Service Accounts do not have storage quota": file di Shared Drive
+    // dimiliki organisasi, bukan service account, sehingga tidak kena kuota 0.
     const created = await drive.files.create({
       requestBody: {
         name: fileName || `galeri-${Date.now()}.jpg`,
@@ -41,6 +45,7 @@ export default async function handler(req, res) {
         body: Readable.from(buffer),
       },
       fields: 'id',
+      supportsAllDrives: true,
     })
 
     const fileId = created.data.id
@@ -49,6 +54,7 @@ export default async function handler(req, res) {
     await drive.permissions.create({
       fileId,
       requestBody: { role: 'reader', type: 'anyone' },
+      supportsAllDrives: true,
     })
 
     return res.status(200).json({

@@ -45,12 +45,14 @@ export default async function handler(req, res) {
         body: Readable.from(buffer),
       },
       fields: 'id',
+      supportsAllDrives: true,
     })
 
     const fileId = created.data.id
     await drive.permissions.create({
       fileId,
       requestBody: { role: 'reader', type: 'anyone' },
+      supportsAllDrives: true,
     })
 
     return res.status(200).json({

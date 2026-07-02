@@ -7,19 +7,7 @@ import { Spinner } from './ui/spinner'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 import { Label } from './ui/label'
-
-const roleLabel = (role) => {
-  if (role === 'student') return 'Murid'
-  if (role === 'sensei') return 'Sensei'
-  if (role === 'asisten_sensei') return 'Asisten Sensei'
-  return 'Staff'
-}
-
-const roleBadgeVariant = (role) => {
-  if (role === 'student') return 'default'
-  if (role === 'sensei' || role === 'asisten_sensei') return 'warning'
-  return 'secondary'
-}
+import { useRoles, roleLabel, roleBadgeVariant } from '../store/useRolesStore'
 
 const earlyReasonLabel = (reason) => {
   const map = { izin: 'Izin', sakit: 'Sakit', dinas_keluar: 'Dinas Keluar', others: 'Lainnya' }
@@ -54,6 +42,7 @@ export function AttendanceTable({
   onUpdateNote,
   onUpdateTime,
 }) {
+  useRoles() // pastikan label role custom termuat & reaktif
   const [selected, setSelected] = useState(() => new Set())
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)

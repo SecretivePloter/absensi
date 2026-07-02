@@ -13,9 +13,11 @@ import { Select } from '../components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Spinner } from '../components/ui/spinner'
 import { useToast } from '../components/ui/toast'
+import { useRoles, roleLabel } from '../store/useRolesStore'
 
 export default function ManualAttendance() {
   const toast = useToast()
+  useRoles() // muat label role custom untuk daftar pencarian
   const [users, setUsers] = useState([])
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(false)
@@ -164,7 +166,7 @@ export default function ManualAttendance() {
                         >
                           <span>{u.name}</span>
                           <span className="text-xs text-muted-foreground">
-                            {{ student: 'Murid', sensei: 'Sensei', asisten_sensei: 'Asisten Sensei' }[u.role] ?? 'Staff'}
+                            {roleLabel(u.role)}
                             {u.classes ? ` — ${u.classes.name}` : ''}
                           </span>
                         </button>

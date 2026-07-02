@@ -1,12 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns'
 import { id } from 'date-fns/locale'
-import { ArrowLeft, QrCode, Calendar, TrendingUp, Clock } from 'lucide-react'
+import { ArrowLeft, QrCode, Calendar, TrendingUp, Clock, FileSpreadsheet } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { Layout } from '../components/Layout'
 import { QRCodeDisplay } from '../components/QRCode'
 import { ExportButton } from '../components/ExportButton'
+import { exportPayrollReport } from '../utils/exportPayroll'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
@@ -15,6 +16,7 @@ import { Label } from '../components/ui/label'
 import { Spinner } from '../components/ui/spinner'
 import { useToast } from '../components/ui/toast'
 import { getHolidayName } from '../lib/holidays'
+import { useRoles, roleLabel, roleBadgeVariant } from '../store/useRolesStore'
 import { clsx } from 'clsx'
 
 const toLocalTimeStr = (iso) => iso ? format(new Date(iso), 'HH:mm') : ''
@@ -30,6 +32,7 @@ const PAGE_SIZE = 15
 export default function UserDetail() {
   const { id: userId } = useParams()
   const toast = useToast()
+  useRoles() // muat label role custom untuk badge profil
   const [user, setUser] = useState(null)
   const [attendance, setAttendance] = useState([])
   const [loading, setLoading] = useState(true)
@@ -37,6 +40,30 @@ export default function UserDetail() {
   const [viewMonth, setViewMonth] = useState(new Date())
   const [page, setPage] = useState(0)
   const [stats, setStats] = useState({ thisMonth: 0, percentage: 0, avgHour: null })
+
+  // Periode payroll: perusahaan tutup buku tgl 21 → periode = 21 bln lalu s/d 20 bln ini.
+  // Sediakan 12 siklus terakhir sebagai opsi ekspor bulanan.
+  const cycleOptions = useMemo(() => {
+    const now = new Date()
+    let y = now.getFullYear()
+    let m = now.getMonth()
+    if (now.getDate() < 21) { m -= 1; if (m < 0) { m = 11; y -= 1 } }
+    const opts = []
+    for (let i = 0; i < 12; i++) {
+      const start = new Date(y, m, 21)
+      const end = new Date(y, m + 1, 20)
+      opts.push({
+        key: `${y}-${String(m + 1).padStart(2, '0')}`,
+        start,
+        end,
+        label: `${format(start, 'd MMM', { locale: id })} – ${format(end, 'd MMM yyyy', { locale: id })}`,
+      })
+      m -= 1; if (m < 0) { m = 11; y -= 1 }
+    }
+    return opts
+  }, [])
+  const [payrollCycle, setPayrollCycle] = useState('')
+  const selectedCycle = payrollCycle || cycleOptions[0]?.key
 
   // Edit jam
   const [editTime, setEditTime] = useState(null) // { id, date, checkIn, checkOut }
@@ -139,6 +166,16 @@ export default function UserDetail() {
     users: { name: user.name, role: user.role, classes: user.classes },
   }))
 
+  // Export laporan payroll untuk siklus (periode) terpilih.
+  const handleExportPayroll = () => {
+    const cyc = cycleOptions.find(o => o.key === selectedCycle) || cycleOptions[0]
+    if (!cyc) return
+    const startStr = format(cyc.start, 'yyyy-MM-dd')
+    const endStr = format(cyc.end, 'yyyy-MM-dd')
+    const periodRecords = attendance.filter(r => r.date >= startStr && r.date <= endStr)
+    exportPayrollReport({ user, records: periodRecords, periodStart: cyc.start, periodEnd: cyc.end })
+  }
+
   return (
     <Layout>
       <div className="p-6 space-y-6">
@@ -162,8 +199,8 @@ export default function UserDetail() {
               <div className="flex-1">
                 <h1 className="text-2xl font-bold">{user.name}</h1>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge variant={user.role === 'student' ? 'default' : (user.role === 'sensei' || user.role === 'asisten_sensei') ? 'warning' : 'secondary'}>
-                    {{ student: 'Murid', sensei: 'Sensei', asisten_sensei: 'Asisten Sensei' }[user.role] ?? 'Staff'}
+                  <Badge variant={roleBadgeVariant(user.role)}>
+                    {roleLabel(user.role)}
                   </Badge>
                   {user.classes && <Badge variant="outline">{user.classes.name}</Badge>}
                   <Badge variant={user.is_active ? 'success' : 'outline'}>
@@ -300,9 +337,25 @@ export default function UserDetail() {
         {/* History Table */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-base">Riwayat Absensi ({attendance.length} total)</CardTitle>
-              <ExportButton records={exportRecords} filename={`absensi_${user.name.replace(/\s+/g, '_')}`} />
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={selectedCycle}
+                  onChange={(e) => setPayrollCycle(e.target.value)}
+                  title="Periode laporan (tutup buku tgl 21)"
+                  className="h-9 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {cycleOptions.map(o => (
+                    <option key={o.key} value={o.key}>{o.label}</option>
+                  ))}
+                </select>
+                <Button variant="outline" size="sm" onClick={handleExportPayroll}>
+                  <FileSpreadsheet className="h-4 w-4 mr-1.5" />
+                  Export Laporan Bulanan
+                </Button>
+                <ExportButton records={exportRecords} filename={`absensi_${user.name.replace(/\s+/g, '_')}`} />
+              </div>
             </div>
           </CardHeader>
           <CardContent>

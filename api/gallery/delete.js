@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     }
 
     try {
-      await getDrive().files.delete({ fileId: driveFileId })
+      await getDrive().files.delete({ fileId: driveFileId, supportsAllDrives: true })
     } catch (err) {
       // Bila file sudah tidak ada di Drive (404), anggap sukses agar baris DB tetap bisa dihapus.
       const status = err?.code || err?.response?.status
