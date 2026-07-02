@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Edit2, Trash2, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { Layout } from '../components/Layout'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -12,7 +11,7 @@ import { useToast } from '../components/ui/toast'
 
 const emptyForm = { name: '', description: '', schedule: '' }
 
-export default function Classes() {
+export function ClassesManager() {
   const toast = useToast()
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
@@ -83,10 +82,10 @@ export default function Classes() {
   }
 
   return (
-    <Layout>
-      <div className="p-6 space-y-6">
+    <>
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Manajemen Kelas</h1>
+          <h1 className="text-xl font-bold">Manajemen Kelas</h1>
           <Button size="sm" onClick={openAdd}>
             <Plus className="h-4 w-4 mr-1.5" />
             Tambah Kelas
@@ -200,6 +199,6 @@ export default function Classes() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Layout>
+    </>
   )
 }

@@ -61,6 +61,15 @@ export const useRolesStore = create((set, get) => ({
     set({ roles: cache })
     return data
   },
+
+  // Hapus role dari tabel. (Pemanggil bertanggung jawab memastikan tak ada user
+  // yang masih memakai role ini.)
+  async deleteRole(value) {
+    const { error } = await supabase.from('roles').delete().eq('value', value)
+    if (error) throw error
+    cache = get().roles.filter((r) => r.value !== value)
+    set({ roles: cache })
+  },
 }))
 
 // ---- Helper sinkron (baca cache modul; bisa diberi list eksplisit) ----
