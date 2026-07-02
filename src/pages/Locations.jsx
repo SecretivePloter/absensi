@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Edit2, Trash2, MapPin } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { Layout } from '../components/Layout'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -12,7 +11,7 @@ import { useToast } from '../components/ui/toast'
 
 const emptyForm = { name: '', address: '' }
 
-export default function Locations() {
+export function LocationsManager() {
   const toast = useToast()
   const [locations, setLocations] = useState([])
   const [loading, setLoading] = useState(true)
@@ -80,11 +79,11 @@ export default function Locations() {
   }
 
   return (
-    <Layout>
-      <div className="p-6 space-y-6">
+    <>
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Lokasi Kantor</h1>
+            <h1 className="text-xl font-bold">Lokasi Kantor</h1>
             <p className="text-muted-foreground text-sm mt-1">
               Lokasi yang bisa dipilih di halaman scan QR
             </p>
@@ -190,6 +189,6 @@ export default function Locations() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Layout>
+    </>
   )
 }

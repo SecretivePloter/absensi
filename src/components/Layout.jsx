@@ -1,8 +1,8 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import {
-  LayoutDashboard, Users, BookOpen, ScanLine,
-  ClipboardList, MapPin, Moon, Sun, LogOut, Menu, X, CreditCard, Images
+  LayoutDashboard, Users, ScanLine,
+  ClipboardList, Settings, Moon, Sun, LogOut, Menu, X, CreditCard, Images
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuthStore } from '../store/useAuthStore'
@@ -12,11 +12,10 @@ import { Button } from './ui/button'
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/users', icon: Users, label: 'Pengguna' },
-  { to: '/classes', icon: BookOpen, label: 'Kelas' },
-  { to: '/locations', icon: MapPin, label: 'Lokasi' },
   { to: '/attendance/manual', icon: ClipboardList, label: 'Absensi Manual' },
   { to: '/id-card', icon: CreditCard, label: 'ID Card' },
   { to: '/gallery', icon: Images, label: 'Galeri' },
+  { to: '/settings', icon: Settings, label: 'Pengaturan' },
   { to: '/scan', icon: ScanLine, label: 'Scan QR', external: true },
 ]
 

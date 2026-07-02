@@ -10,8 +10,7 @@ import Scan from './pages/Scan'
 import Dashboard from './pages/Dashboard'
 import Users from './pages/Users'
 import UserDetail from './pages/UserDetail'
-import Classes from './pages/Classes'
-import Locations from './pages/Locations'
+import Settings from './pages/Settings'
 import ManualAttendance from './pages/ManualAttendance'
 import IDCard from './pages/IDCard'
 import GallerySection from './features/gallery/GallerySection'
@@ -54,8 +53,10 @@ const router = createBrowserRouter([
       { path: 'dashboard', element: <Dashboard /> },
       { path: 'users', element: <Users /> },
       { path: 'users/:id', element: <UserDetail /> },
-      { path: 'classes', element: <Classes /> },
-      { path: 'locations', element: <Locations /> },
+      { path: 'settings', element: <Settings /> },
+      // Kelas & Lokasi kini digabung di dalam Pengaturan — redirect link lama.
+      { path: 'classes', element: <Navigate to="/settings" replace /> },
+      { path: 'locations', element: <Navigate to="/settings" replace /> },
       { path: 'attendance/manual', element: <ManualAttendance /> },
       { path: 'id-card', element: <IDCard /> },
       { path: 'gallery', element: <GallerySection /> },
