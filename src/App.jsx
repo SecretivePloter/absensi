@@ -30,6 +30,22 @@ function AuthGuard() {
   return <Outlet />
 }
 
+// Guard untuk halaman yang hanya boleh diakses admin (bukan operator)
+function AdminGuard() {
+  const { adminRole, loading } = useAuthStore()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    )
+  }
+
+  if (adminRole === 'operator') return <Navigate to="/dashboard" replace />
+  return <Outlet />
+}
+
 function AppInitializer({ children }) {
   const { initialize: initAuth } = useAuthStore()
   const { initialize: initTheme } = useThemeStore()
@@ -51,15 +67,21 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: 'dashboard', element: <Dashboard /> },
-      { path: 'users', element: <Users /> },
-      { path: 'users/:id', element: <UserDetail /> },
-      { path: 'settings', element: <Settings /> },
-      // Kelas & Lokasi kini digabung di dalam Pengaturan — redirect link lama.
-      { path: 'classes', element: <Navigate to="/settings" replace /> },
-      { path: 'locations', element: <Navigate to="/settings" replace /> },
-      { path: 'attendance/manual', element: <ManualAttendance /> },
-      { path: 'id-card', element: <IDCard /> },
-      { path: 'gallery', element: <GallerySection /> },
+      // Halaman berikut hanya untuk admin — operator akan di-redirect ke dashboard
+      {
+        element: <AdminGuard />,
+        children: [
+          { path: 'users', element: <Users /> },
+          { path: 'users/:id', element: <UserDetail /> },
+          { path: 'settings', element: <Settings /> },
+          // Kelas & Lokasi kini digabung di dalam Pengaturan — redirect link lama.
+          { path: 'classes', element: <Navigate to="/settings" replace /> },
+          { path: 'locations', element: <Navigate to="/settings" replace /> },
+          { path: 'attendance/manual', element: <ManualAttendance /> },
+          { path: 'id-card', element: <IDCard /> },
+          { path: 'gallery', element: <GallerySection /> },
+        ],
+      },
     ],
   },
   { path: '*', element: <Navigate to="/dashboard" replace /> },

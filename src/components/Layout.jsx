@@ -2,26 +2,28 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import {
   LayoutDashboard, Users, ScanLine,
-  ClipboardList, Settings, Moon, Sun, LogOut, Menu, X, CreditCard, Images
+  ClipboardList, Settings, Moon, Sun, LogOut, Menu, X, CreditCard, Images,
+  Shield
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuthStore } from '../store/useAuthStore'
 import { useThemeStore } from '../store/useThemeStore'
 import { Button } from './ui/button'
+import { Badge } from './ui/badge'
 
-const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/users', icon: Users, label: 'Pengguna' },
-  { to: '/attendance/manual', icon: ClipboardList, label: 'Absensi Manual' },
-  { to: '/id-card', icon: CreditCard, label: 'ID Card' },
-  { to: '/gallery', icon: Images, label: 'Galeri' },
-  { to: '/settings', icon: Settings, label: 'Pengaturan' },
-  { to: '/scan', icon: ScanLine, label: 'Scan QR', external: true },
+const allNavItems = [
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'operator'] },
+  { to: '/users', icon: Users, label: 'Pengguna', roles: ['admin'] },
+  { to: '/attendance/manual', icon: ClipboardList, label: 'Absensi Manual', roles: ['admin'] },
+  { to: '/id-card', icon: CreditCard, label: 'ID Card', roles: ['admin'] },
+  { to: '/gallery', icon: Images, label: 'Galeri', roles: ['admin'] },
+  { to: '/settings', icon: Settings, label: 'Pengaturan', roles: ['admin'] },
+  { to: '/scan', icon: ScanLine, label: 'Scan QR', roles: ['admin', 'operator'], external: true },
 ]
 
 export function Layout({ children }) {
   const navigate = useNavigate()
-  const { signOut, user } = useAuthStore()
+  const { signOut, user, adminRole } = useAuthStore()
   const { theme, toggle } = useThemeStore()
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -30,6 +32,15 @@ export function Layout({ children }) {
     navigate('/login')
   }
 
+  // Filter nav items berdasarkan role
+  const navItems = allNavItems.filter(item => item.roles.includes(adminRole))
+
+  const roleBadge = adminRole === 'operator' ? (
+    <Badge variant="outline" className="text-[10px] px-1.5 py-0 ml-1">Operator</Badge>
+  ) : (
+    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">Admin</Badge>
+  )
+
   return (
     <div className="min-h-screen flex bg-background">
       {/* Sidebar desktop */}
@@ -37,7 +48,10 @@ export function Layout({ children }) {
         <div className="p-6 border-b">
           <div className="flex flex-col items-start gap-2">
             <img src="/logo.png" alt="Ichikara" className="h-10 w-auto" />
-            <span className="text-xs font-semibold text-muted-foreground">Sistem Absensi QR</span>
+            <div className="flex items-center">
+              <span className="text-xs font-semibold text-muted-foreground">Sistem Absensi QR</span>
+              {roleBadge}
+            </div>
           </div>
         </div>
 
@@ -79,6 +93,7 @@ export function Layout({ children }) {
         <div className="flex items-center gap-2">
           <img src="/logo.png" alt="Ichikara" className="h-7 w-auto" />
           <span className="font-bold text-sm">Absensi QR</span>
+          {roleBadge}
         </div>
         <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2">
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
