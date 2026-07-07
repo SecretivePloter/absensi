@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
-import { CheckCircle2, XCircle, AlertCircle, MapPin, LogOut, Maximize, Minimize } from 'lucide-react'
+import { CheckCircle2, XCircle, AlertCircle, MapPin, LogOut, Maximize, Minimize, SwitchCamera } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { QRScanner } from '../components/QRScanner'
 import { Spinner } from '../components/ui/spinner'
@@ -24,8 +24,8 @@ const playAudio = (src) => {
   try {
     const audio = new Audio(src)
     audio.volume = 1.0
-    audio.play().catch(() => {})
-  } catch (_) {}
+    audio.play().catch(() => { })
+  } catch (_) { }
 }
 
 const REASONS = [
@@ -43,6 +43,7 @@ export default function Scan() {
   const [locations, setLocations] = useState([])
   const [locationId, setLocationId] = useState(() => localStorage.getItem('scan_location_id') || '')
   const [earlyCheckout, setEarlyCheckout] = useState(null) // { user, existingId, checkInAt }
+  const [facingMode, setFacingMode] = useState('environment')
   const lockRef = useRef(false)
 
   useEffect(() => {
@@ -66,6 +67,10 @@ export default function Scan() {
     setLocationId(v)
     if (v) localStorage.setItem('scan_location_id', v)
     else localStorage.removeItem('scan_location_id')
+  }
+
+  const toggleCamera = () => {
+    setFacingMode(prev => prev === 'environment' ? 'user' : 'environment')
   }
 
   const handleScan = useCallback(async (qrValue) => {
@@ -237,25 +242,25 @@ export default function Scan() {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {})
+      document.documentElement.requestFullscreen().catch(() => { })
     } else {
-      document.exitFullscreen().catch(() => {})
+      document.exitFullscreen().catch(() => { })
     }
   }
 
   return (
-    <div className="h-screen bg-gray-900 text-white flex flex-col overflow-hidden">
+    <div className="h-[100dvh] bg-gray-900 text-white flex flex-col overflow-hidden">
 
       {/* Header compact */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/90 backdrop-blur-sm border-b border-gray-700 shrink-0">
-        <img src="/logo.png" alt="Ichikara" className="h-7 w-auto bg-white rounded px-1.5 py-0.5 shrink-0" />
+      <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-800/90 backdrop-blur-sm border-b border-gray-700 shrink-0">
+        <img src="/logo.png" alt="Ichikara" className="h-6 sm:h-7 w-auto bg-white rounded px-1 sm:px-1.5 py-0.5 shrink-0" />
 
         <div className="flex items-center gap-1 flex-1 min-w-0">
-          <MapPin className={`h-3.5 w-3.5 shrink-0 ${locationId ? 'text-green-400' : 'text-yellow-400'}`} />
+          <MapPin className={`h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 ${locationId ? 'text-green-400' : 'text-yellow-400'}`} />
           <select
             value={locationId}
             onChange={handleLocationChange}
-            className="bg-gray-700 text-white text-xs rounded px-2 py-1.5 border border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 flex-1 min-w-0 truncate"
+            className="bg-gray-700 text-white text-[11px] sm:text-xs rounded px-1.5 sm:px-2 py-1 sm:py-1.5 border border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 flex-1 min-w-0 truncate"
           >
             <option value="">Pilih Lokasi…</option>
             {locations.map(l => (
@@ -265,17 +270,26 @@ export default function Scan() {
         </div>
 
         <div className="text-right shrink-0">
-          <div className="text-base font-mono font-bold tabular-nums leading-none">
+          <div className="text-sm sm:text-base font-mono font-bold tabular-nums leading-none">
             {format(now, 'HH:mm:ss')}
           </div>
-          <div className="text-[10px] text-gray-400 leading-none mt-0.5">
+          <div className="text-[9px] sm:text-[10px] text-gray-400 leading-none mt-0.5">
             {format(now, 'EEE, d MMM yyyy', { locale: id })}
           </div>
         </div>
 
+        {/* Tombol flip kamera */}
+        <button
+          onClick={toggleCamera}
+          className="p-1.5 rounded text-gray-400 hover:text-white hover:bg-gray-700 active:bg-gray-600 transition-colors shrink-0"
+          title={facingMode === 'environment' ? 'Ganti ke kamera depan' : 'Ganti ke kamera belakang'}
+        >
+          <SwitchCamera className="h-4 w-4" />
+        </button>
+
         <button
           onClick={toggleFullscreen}
-          className="ml-1 p-1.5 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition-colors shrink-0"
+          className="p-1.5 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition-colors shrink-0"
           title={isFullscreen ? 'Keluar fullscreen' : 'Fullscreen'}
         >
           {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
@@ -284,34 +298,35 @@ export default function Scan() {
 
       {/* Warning lokasi */}
       {locations.length > 0 && !locationId && (
-        <div className="bg-yellow-500/20 border-b border-yellow-500/40 text-yellow-300 text-center text-xs py-1.5 px-4 shrink-0">
+        <div className="bg-yellow-500/20 border-b border-yellow-500/40 text-yellow-300 text-center text-[11px] sm:text-xs py-1 sm:py-1.5 px-3 sm:px-4 shrink-0">
           ⚠ Pilih lokasi agar absensi tercatat lengkap
         </div>
       )}
 
       {/* Scanner area — mengisi sisa layar */}
-      <div className="flex-1 relative flex flex-col items-center justify-center px-3 py-3 min-h-0">
-        <div className="w-full max-w-sm flex flex-col h-full justify-center gap-2">
-          <p className="text-center text-gray-400 text-xs">
+      <div className="flex-1 relative flex flex-col items-center justify-center px-2 sm:px-3 py-2 sm:py-3 min-h-0">
+        <div className="w-full max-w-sm flex flex-col h-full justify-center gap-1.5 sm:gap-2">
+          <p className="text-center text-gray-400 text-[11px] sm:text-xs">
             Arahkan QR code ke kamera
             {currentLocationName && (
               <span className="text-green-400"> · {currentLocationName}</span>
             )}
           </p>
-          <div className="rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex-1 max-h-[70vh]">
-            <QRScanner onScan={handleScan} />
+          <div className="rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex-1 min-h-0" style={{ maxHeight: '65dvh' }}>
+            <QRScanner onScan={handleScan} facingMode={facingMode} />
           </div>
-          <p className="text-center text-[11px] text-gray-600">
+          <p className="text-center text-[10px] sm:text-[11px] text-gray-600">
             Scan pertama = masuk · scan kedua = pulang
+            <span className="hidden sm:inline"> · {facingMode === 'environment' ? '📷 Kamera belakang' : '🤳 Kamera depan'}</span>
           </p>
         </div>
 
         {/* Overlay hasil scan */}
         {scanState !== 'idle' && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-900/95 backdrop-blur-sm px-4">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-900/95 backdrop-blur-sm px-3 sm:px-4">
 
             {scanState === 'processing' && (
-              <div className="flex flex-col items-center gap-4 animate-fade-in">
+              <div className="flex flex-col items-center gap-3 sm:gap-4 animate-fade-in">
                 <Spinner size="lg" className="text-blue-400" />
                 <p className="text-gray-300 text-sm">Memproses...</p>
               </div>
@@ -319,10 +334,10 @@ export default function Scan() {
 
             {/* PILIH ALASAN PULANG LEBIH AWAL */}
             {scanState === 'reason' && earlyCheckout && (
-              <div className="flex flex-col items-center gap-4 animate-fade-in text-center max-w-xs w-full">
+              <div className="flex flex-col items-center gap-3 sm:gap-4 animate-fade-in text-center max-w-xs w-full">
                 <div>
-                  <p className="text-orange-300/90 text-base">Pulang lebih awal,</p>
-                  <h2 className="text-3xl font-bold mt-1">{firstName(earlyCheckout.user.name)}</h2>
+                  <p className="text-orange-300/90 text-sm sm:text-base">Pulang lebih awal,</p>
+                  <h2 className="text-2xl sm:text-3xl font-bold mt-1">{firstName(earlyCheckout.user.name)}</h2>
                   <p className="text-gray-400 text-xs mt-1">
                     Masuk {format(new Date(earlyCheckout.checkInAt), 'HH:mm')}
                   </p>
@@ -333,9 +348,9 @@ export default function Scan() {
                     <button
                       key={value}
                       onClick={() => handleReasonSelect(value)}
-                      className="bg-gray-700 hover:bg-gray-600 active:scale-95 transition-all rounded-xl p-3 text-center border border-gray-600 hover:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                      className="bg-gray-700 hover:bg-gray-600 active:scale-95 transition-all rounded-xl p-2.5 sm:p-3 text-center border border-gray-600 hover:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400"
                     >
-                      <div className="text-xl mb-1">{icon}</div>
+                      <div className="text-lg sm:text-xl mb-0.5 sm:mb-1">{icon}</div>
                       <div className="font-medium text-xs">{label}</div>
                     </button>
                   ))}
@@ -345,29 +360,29 @@ export default function Scan() {
 
             {/* MASUK */}
             {scanState === 'success' && result?.user && (
-              <div className="flex flex-col items-center gap-4 animate-fade-in text-center">
+              <div className="flex flex-col items-center gap-3 sm:gap-4 animate-fade-in text-center">
                 <div className="relative">
                   {result.user.photo_url ? (
-                    <img src={result.user.photo_url} alt={result.user.name} className="h-24 w-24 rounded-full object-cover border-4 border-green-500" />
+                    <img src={result.user.photo_url} alt={result.user.name} className="h-20 w-20 sm:h-24 sm:w-24 rounded-full object-cover border-4 border-green-500" />
                   ) : (
-                    <div className="h-24 w-24 rounded-full bg-green-500/20 border-4 border-green-500 flex items-center justify-center text-3xl font-bold text-green-400">
+                    <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-green-500/20 border-4 border-green-500 flex items-center justify-center text-2xl sm:text-3xl font-bold text-green-400">
                       {result.user.name?.charAt(0)?.toUpperCase()}
                     </div>
                   )}
                   <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full p-1 animate-check-bounce">
-                    <CheckCircle2 className="h-6 w-6 text-white" />
+                    <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                   </div>
                 </div>
                 <div>
-                  <p className="text-base text-green-300/90">{result.greeting},</p>
-                  <h2 className="text-3xl font-bold mt-0.5">{firstName(result.user.name)}</h2>
+                  <p className="text-sm sm:text-base text-green-300/90">{result.greeting},</p>
+                  <h2 className="text-2xl sm:text-3xl font-bold mt-0.5">{firstName(result.user.name)}</h2>
                   <p className="text-gray-400 text-xs mt-1">
                     {roleLabel(result.user.role)}
                     {result.user.classes?.name ? ` — ${result.user.classes.name}` : ''}
                   </p>
                 </div>
-                <div className="bg-green-500/20 border border-green-500/50 rounded-xl px-5 py-2">
-                  <p className="text-green-400 font-medium text-sm">
+                <div className="bg-green-500/20 border border-green-500/50 rounded-xl px-4 sm:px-5 py-2">
+                  <p className="text-green-400 font-medium text-xs sm:text-sm">
                     Absen masuk tercatat · {format(new Date(), 'HH:mm')}
                     {currentLocationName ? ` · ${currentLocationName}` : ''}
                   </p>
@@ -377,28 +392,28 @@ export default function Scan() {
 
             {/* PULANG */}
             {scanState === 'checkout' && result?.user && (
-              <div className="flex flex-col items-center gap-4 animate-fade-in text-center">
+              <div className="flex flex-col items-center gap-3 sm:gap-4 animate-fade-in text-center">
                 <div className="relative">
                   {result.user.photo_url ? (
-                    <img src={result.user.photo_url} alt={result.user.name} className="h-24 w-24 rounded-full object-cover border-4 border-blue-500" />
+                    <img src={result.user.photo_url} alt={result.user.name} className="h-20 w-20 sm:h-24 sm:w-24 rounded-full object-cover border-4 border-blue-500" />
                   ) : (
-                    <div className="h-24 w-24 rounded-full bg-blue-500/20 border-4 border-blue-500 flex items-center justify-center text-3xl font-bold text-blue-400">
+                    <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-blue-500/20 border-4 border-blue-500 flex items-center justify-center text-2xl sm:text-3xl font-bold text-blue-400">
                       {result.user.name?.charAt(0)?.toUpperCase()}
                     </div>
                   )}
                   <div className="absolute -bottom-2 -right-2 bg-blue-500 rounded-full p-1 animate-check-bounce">
-                    <LogOut className="h-6 w-6 text-white" />
+                    <LogOut className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                   </div>
                 </div>
                 <div>
-                  <p className="text-base text-blue-300/90">Sampai Jumpa,</p>
-                  <h2 className="text-3xl font-bold mt-0.5">{firstName(result.user.name)}</h2>
+                  <p className="text-sm sm:text-base text-blue-300/90">Sampai Jumpa,</p>
+                  <h2 className="text-2xl sm:text-3xl font-bold mt-0.5">{firstName(result.user.name)}</h2>
                   <p className="text-gray-400 text-xs mt-1">
                     Masuk {format(new Date(result.checkInAt), 'HH:mm')}
                   </p>
                 </div>
-                <div className="bg-blue-500/20 border border-blue-500/50 rounded-xl px-5 py-2">
-                  <p className="text-blue-400 font-medium text-sm">
+                <div className="bg-blue-500/20 border border-blue-500/50 rounded-xl px-4 sm:px-5 py-2">
+                  <p className="text-blue-400 font-medium text-xs sm:text-sm">
                     Absen pulang tercatat · {format(new Date(), 'HH:mm')}
                   </p>
                 </div>
@@ -407,25 +422,25 @@ export default function Scan() {
 
             {/* DUPLIKAT / SUDAH LENGKAP */}
             {scanState === 'duplicate' && result?.user && (
-              <div className="flex flex-col items-center gap-3 animate-fade-in text-center">
-                <div className="h-16 w-16 rounded-full bg-yellow-500/20 border-4 border-yellow-500 flex items-center justify-center">
-                  <AlertCircle className="h-8 w-8 text-yellow-400" />
+              <div className="flex flex-col items-center gap-2.5 sm:gap-3 animate-fade-in text-center">
+                <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-yellow-500/20 border-4 border-yellow-500 flex items-center justify-center">
+                  <AlertCircle className="h-7 w-7 sm:h-8 sm:w-8 text-yellow-400" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold">{firstName(result.user.name)}</h2>
+                  <h2 className="text-lg sm:text-xl font-bold">{firstName(result.user.name)}</h2>
                   <p className="text-gray-400 text-xs">{roleLabel(result.user.role)}</p>
                 </div>
-                <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-xl px-5 py-2.5">
+                <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-xl px-4 sm:px-5 py-2 sm:py-2.5">
                   {result.type === 'done' ? (
                     <>
-                      <p className="text-yellow-400 font-semibold">Absensi Hari Ini Lengkap</p>
+                      <p className="text-yellow-400 font-semibold text-sm">Absensi Hari Ini Lengkap</p>
                       <p className="text-yellow-300/70 text-xs">
                         Masuk {format(new Date(result.checkInAt), 'HH:mm')} · Pulang {format(new Date(result.checkOutAt), 'HH:mm')}
                       </p>
                     </>
                   ) : (
                     <>
-                      <p className="text-yellow-400 font-semibold">Baru Saja Absen Masuk</p>
+                      <p className="text-yellow-400 font-semibold text-sm">Baru Saja Absen Masuk</p>
                       <p className="text-yellow-300/70 text-xs">
                         Pukul {format(new Date(result.checkInAt), 'HH:mm:ss')} — scan pulang 5 menit setelah masuk
                       </p>
@@ -436,12 +451,12 @@ export default function Scan() {
             )}
 
             {scanState === 'error' && (
-              <div className="flex flex-col items-center gap-3 animate-fade-in text-center">
-                <div className="h-16 w-16 rounded-full bg-red-500/20 border-4 border-red-500 flex items-center justify-center">
-                  <XCircle className="h-8 w-8 text-red-400" />
+              <div className="flex flex-col items-center gap-2.5 sm:gap-3 animate-fade-in text-center">
+                <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-red-500/20 border-4 border-red-500 flex items-center justify-center">
+                  <XCircle className="h-7 w-7 sm:h-8 sm:w-8 text-red-400" />
                 </div>
-                <div className="bg-red-500/20 border border-red-500/50 rounded-xl px-5 py-2.5">
-                  <p className="text-red-400 font-semibold">Gagal</p>
+                <div className="bg-red-500/20 border border-red-500/50 rounded-xl px-4 sm:px-5 py-2 sm:py-2.5">
+                  <p className="text-red-400 font-semibold text-sm">Gagal</p>
                   <p className="text-red-300/70 text-xs">{result?.message}</p>
                 </div>
               </div>
@@ -451,8 +466,11 @@ export default function Scan() {
       </div>
 
       {/* Footer minimal */}
-      <div className="px-4 py-1.5 bg-gray-800/80 flex justify-end items-center shrink-0">
-        <a href="/dashboard" className="text-[11px] text-blue-400/70 hover:text-blue-300">
+      <div className="px-3 sm:px-4 py-1 sm:py-1.5 bg-gray-800/80 flex justify-between items-center shrink-0">
+        <span className="text-[10px] sm:text-[11px] text-gray-600">
+          {facingMode === 'environment' ? '📷 Belakang' : '🤳 Depan'}
+        </span>
+        <a href="/dashboard" className="text-[10px] sm:text-[11px] text-blue-400/70 hover:text-blue-300">
           Admin →
         </a>
       </div>

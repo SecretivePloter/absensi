@@ -66,11 +66,24 @@ Kolom penting:
 | `005_early_checkout_roles.sql` | role + alasan pulang cepat |
 | `006_absence_reason.sql` | kolom `absence_reason` (izin/sakit) ✅ sudah dijalankan |
 | `006_asisten_sensei_role.sql` | role asisten_sensei |
+| `007_gallery.sql` | tabel galeri |
+| `008_roles.sql` | tabel roles dinamis |
+| `009_drop_role_check.sql` | hapus check constraint role lama |
+| `010_admin_roles.sql` | tabel admin_roles (admin vs operator) ⚠️ jalankan manual |
 
 > ⚠️ **MCP Supabase yang terhubung mengarah ke akun LAMA** (`vhsgpfivjfulzglloecz`), BUKAN akun ini. Jadi semua migrasi **harus user jalankan manual** di dashboard Supabase akun baru.
 
-### Role
+### Role (user murid/staff)
 `STAFF_ROLES = ['staff', 'sensei', 'asisten_sensei', 'employee']` — sisanya dianggap murid.
+
+### Role Admin (user login — tabel `admin_roles`, migration 010)
+- `admin` = akses penuh, semua CRUD (default jika tidak ada entry di tabel)
+- `operator` = hanya bisa lihat Dashboard (read-only) + Scan QR
+- **Backward compatible**: user lama tanpa entry di `admin_roles` → otomatis admin.
+- Store: `useAuthStore.adminRole` ('admin' | 'operator'), di-fetch saat login.
+- Guard: `AdminGuard` di `App.jsx` mencegah operator akses halaman admin-only.
+- Layout: `Layout.jsx` menyaring `navItems` berdasarkan `adminRole`.
+- Dashboard: tombol CRUD (hapus, edit jam, edit catatan, tandai izin/sakit) disembunyikan jika operator.
 
 ---
 
@@ -96,6 +109,8 @@ Kolom penting:
 - Scan **3** = "sudah lengkap".
 - Lokasi kiosk per perangkat disimpan di `localStorage` key `scan_location_id`.
 - Halaman scan menampilkan greeting (Selamat Pagi/Siang/Sore/Malam) + nama depan, reset 2 detik.
+- **Tombol flip kamera** (🔄 `SwitchCamera`) di header → toggle `facingMode` antara `'environment'` (belakang) dan `'user'` (depan).
+- `QRScanner` component menerima prop `facingMode` — scanner restart otomatis saat mode berubah.
 - **Keputusan produk user**: TIDAK pakai deteksi terlambat. Pakai absen pulang + kelola lokasi.
 
 ---

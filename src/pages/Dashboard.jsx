@@ -18,10 +18,12 @@ import { Badge } from '../components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { useToast } from '../components/ui/toast'
 import { useRoles, roleLabel, staffRoleValues } from '../store/useRolesStore'
+import { useAuthStore } from '../store/useAuthStore'
 
 export default function Dashboard() {
   const toast = useToast()
   const roles = useRoles()
+  const isAdmin = useAuthStore((s) => s.adminRole === 'admin')
 
   const [groupFilter, setGroupFilter] = useState('all')
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
@@ -208,7 +210,7 @@ export default function Dashboard() {
 
     const groupLabel = groupFilter === 'all' ? 'Semua'
       : groupFilter === 'staff' ? 'Staff & Sensei'
-      : `Murid ${classes.find(c => c.id === groupFilter)?.name ?? ''}`
+        : `Murid ${classes.find(c => c.id === groupFilter)?.name ?? ''}`
 
     let rows = [], title = ''
 
@@ -304,17 +306,17 @@ export default function Dashboard() {
   // ── Stat cards ────────────────────────────────────────────────────────────────
   const statCards = stats?.mode === 'all'
     ? [
-        { title: 'Hadir Hari Ini', value: stats.hadir, icon: UserCheck, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-950', clickType: 'hadir' },
-        { title: 'Total Murid Aktif', value: stats.totalMurid, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950', clickType: null },
-        { title: 'Total Staff Aktif', value: stats.totalStaff, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-950', clickType: null },
-        { title: 'Persentase Kehadiran', value: `${stats.persentase}%`, icon: TrendingUp, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950', clickType: null },
-      ]
+      { title: 'Hadir Hari Ini', value: stats.hadir, icon: UserCheck, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-950', clickType: 'hadir' },
+      { title: 'Total Murid Aktif', value: stats.totalMurid, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950', clickType: null },
+      { title: 'Total Staff Aktif', value: stats.totalStaff, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-950', clickType: null },
+      { title: 'Persentase Kehadiran', value: `${stats.persentase}%`, icon: TrendingUp, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950', clickType: null },
+    ]
     : [
-        { title: 'Hadir Hari Ini', value: stats?.hadir ?? '-', icon: UserCheck, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-950', clickType: 'hadir' },
-        { title: 'Izin / Sakit', value: stats?.izinSakit ?? '-', icon: AlertCircle, color: 'text-yellow-600', bg: 'bg-yellow-50 dark:bg-yellow-950', clickType: 'izin_sakit' },
-        { title: 'Alpha (Tidak Hadir)', value: stats?.alpha ?? '-', icon: UserX, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950', clickType: 'alpha' },
-        { title: 'Persentase Hadir', value: stats ? `${stats.persentase}%` : '-', icon: TrendingUp, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950', clickType: null },
-      ]
+      { title: 'Hadir Hari Ini', value: stats?.hadir ?? '-', icon: UserCheck, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-950', clickType: 'hadir' },
+      { title: 'Izin / Sakit', value: stats?.izinSakit ?? '-', icon: AlertCircle, color: 'text-yellow-600', bg: 'bg-yellow-50 dark:bg-yellow-950', clickType: 'izin_sakit' },
+      { title: 'Alpha (Tidak Hadir)', value: stats?.alpha ?? '-', icon: UserX, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950', clickType: 'alpha' },
+      { title: 'Persentase Hadir', value: stats ? `${stats.persentase}%` : '-', icon: TrendingUp, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950', clickType: null },
+    ]
 
   return (
     <Layout>
@@ -339,11 +341,10 @@ export default function Dashboard() {
             <button
               key={tab.key}
               onClick={() => setGroupFilter(tab.key)}
-              className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors border ${
-                groupFilter === tab.key
+              className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors border ${groupFilter === tab.key
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -427,10 +428,10 @@ export default function Dashboard() {
             <AttendanceTable
               records={records}
               loading={loading}
-              selectable
-              onDeleteSelected={handleDeleteRecords}
-              onUpdateNote={handleUpdateNote}
-              onUpdateTime={handleUpdateTime}
+              selectable={isAdmin}
+              onDeleteSelected={isAdmin ? handleDeleteRecords : undefined}
+              onUpdateNote={isAdmin ? handleUpdateNote : undefined}
+              onUpdateTime={isAdmin ? handleUpdateTime : undefined}
             />
           </CardContent>
         </Card>
@@ -483,8 +484,8 @@ export default function Dashboard() {
                       </Badge>
                     )}
 
-                    {/* Alpha: tombol tandai izin/sakit */}
-                    {detailModal.type === 'alpha' && (
+                    {/* Alpha: tombol tandai izin/sakit (hanya admin) */}
+                    {detailModal.type === 'alpha' && isAdmin && (
                       <div className="flex gap-1 shrink-0">
                         <Button
                           size="sm"
