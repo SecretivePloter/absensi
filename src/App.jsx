@@ -13,6 +13,7 @@ import UserDetail from './pages/UserDetail'
 import Settings from './pages/Settings'
 import ManualAttendance from './pages/ManualAttendance'
 import IDCard from './pages/IDCard'
+import AttendanceRecap from './pages/AttendanceRecap'
 import GallerySection from './features/gallery/GallerySection'
 
 function AuthGuard() {
@@ -79,6 +80,7 @@ const router = createBrowserRouter([
           { path: 'locations', element: <Navigate to="/settings" replace /> },
           { path: 'attendance/manual', element: <ManualAttendance /> },
           { path: 'id-card', element: <IDCard /> },
+          { path: 'attendance/recap', element: <AttendanceRecap /> },
           { path: 'gallery', element: <GallerySection /> },
         ],
       },

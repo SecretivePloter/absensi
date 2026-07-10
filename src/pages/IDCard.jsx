@@ -26,18 +26,26 @@ async function printIDCard(user) {
 <html>
 <head>
 <meta charset="utf-8">
-<title>ID Card — ${user.name}</title>
+<title>ID Card - ${user.name}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   @page {
-    size: 55mm 87mm;
-    margin: 0;
+    size: 118mm 91mm;
+    margin: 2mm;
   }
   body {
-    width: 55mm;
+    width: 114mm;
     font-family: 'Arial', sans-serif;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+
+  /* ===== PAGE WRAPPER: side-by-side ===== */
+  .page {
+    display: flex;
+    flex-direction: row;
+    gap: 4mm;
+    align-items: flex-start;
   }
 
   /* ===== CARD WRAPPER ===== */
@@ -45,10 +53,10 @@ async function printIDCard(user) {
     width: 55mm;
     height: 87mm;
     overflow: hidden;
-    page-break-after: always;
     position: relative;
     border: 0.4mm solid #1d4ed8;
     border-radius: 3mm;
+    flex-shrink: 0;
   }
 
   /* ===== FRONT ===== */
@@ -186,8 +194,9 @@ async function printIDCard(user) {
 </style>
 </head>
 <body>
+<div class="page">
 
-<!-- HALAMAN DEPAN -->
+<!-- SISI DEPAN -->
 <div class="card front">
   <div class="front-header">
     <img class="front-header-logo" src="${logoUrl}" onerror="this.style.display='none'" />
@@ -203,7 +212,7 @@ async function printIDCard(user) {
   </div>
 </div>
 
-<!-- HALAMAN BELAKANG -->
+<!-- SISI BELAKANG -->
 <div class="card back">
   <div class="back-logo-row">
     <img class="back-logo" src="${logoUrl}" onerror="this.style.display='none'" />
@@ -215,6 +224,8 @@ async function printIDCard(user) {
   <div class="back-divider"></div>
   <div class="back-name">${user.name}</div>
   <div class="back-role">${label}</div>
+</div>
+
 </div>
 
 <script>window.onload = () => setTimeout(() => window.print(), 300)</script>

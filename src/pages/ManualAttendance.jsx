@@ -111,7 +111,7 @@ export default function ManualAttendance() {
       }
 
       const user = users.find(u => u.id === selectedUser)
-      toast({ title: 'Absensi dicatat', description: `${user?.name} — ${date}`, variant: 'success' })
+      toast({ title: 'Absensi dicatat', description: `${user?.name} - ${date}`, variant: 'success' })
       setSelectedUser('')
       setNotes('')
       setSearch('')
@@ -129,7 +129,7 @@ export default function ManualAttendance() {
         <div>
           <h1 className="text-2xl font-bold">Absensi Manual</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Catat absensi tanpa scan QR — untuk kondisi darurat atau perangkat bermasalah
+            Catat absensi tanpa scan QR - untuk kondisi darurat atau perangkat bermasalah
           </p>
         </div>
 
@@ -167,7 +167,7 @@ export default function ManualAttendance() {
                           <span>{u.name}</span>
                           <span className="text-xs text-muted-foreground">
                             {roleLabel(u.role)}
-                            {u.classes ? ` — ${u.classes.name}` : ''}
+                            {u.classes ? ` - ${u.classes.name}` : ''}
                           </span>
                         </button>
                       ))}

@@ -109,7 +109,7 @@ function RolesManager() {
         </div>
         {newLabel.trim() && (
           <p className="text-xs text-muted-foreground -mt-3">
-            Kode role: <span className="font-mono">{slugifyRole(newLabel) || '—'}</span>
+            Kode role: <span className="font-mono">{slugifyRole(newLabel) || '-'}</span>
           </p>
         )}
 

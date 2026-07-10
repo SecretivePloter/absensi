@@ -88,7 +88,7 @@ export function AttendanceTable({
   const openEditTime = (r) => {
     setEditTime({
       id: r.id,
-      userName: r.users?.name ?? '—',
+      userName: r.users?.name ?? '-',
       date: r.date,
       checkIn: toLocalTimeStr(r.check_in_at),
       checkOut: toLocalTimeStr(r.check_out_at),
@@ -191,10 +191,10 @@ export function AttendanceTable({
                 </td>
                 <td className="p-3 hidden md:table-cell text-muted-foreground">{r.users?.classes?.name ?? '-'}</td>
                 <td className="p-3 font-mono text-xs">
-                  {r.check_in_at ? format(new Date(r.check_in_at), 'HH:mm:ss') : <span className="text-muted-foreground">—</span>}
+                  {r.check_in_at ? format(new Date(r.check_in_at), 'HH:mm:ss') : <span className="text-muted-foreground">-</span>}
                 </td>
                 <td className="p-3 font-mono text-xs">
-                  {r.check_out_at ? format(new Date(r.check_out_at), 'HH:mm:ss') : <span className="text-muted-foreground">—</span>}
+                  {r.check_out_at ? format(new Date(r.check_out_at), 'HH:mm:ss') : <span className="text-muted-foreground">-</span>}
                 </td>
                 <td className="p-3 hidden md:table-cell">
                   {r.absence_reason ? (
@@ -205,7 +205,7 @@ export function AttendanceTable({
                     <Badge variant={earlyReasonVariant(r.early_checkout_reason)}>
                       {earlyReasonLabel(r.early_checkout_reason)}
                     </Badge>
-                  ) : <span className="text-muted-foreground">—</span>}
+                  ) : <span className="text-muted-foreground">-</span>}
                 </td>
                 <td className="p-3 hidden md:table-cell text-muted-foreground text-xs">{r.locations?.name ?? '-'}</td>
                 <td className="p-3 hidden sm:table-cell">
@@ -292,6 +292,13 @@ export function AttendanceTable({
                   · {format(new Date(editTime.date + 'T12:00:00'), 'EEEE, d MMM yyyy', { locale: id })}
                 </span>
               </div>
+              <button
+                type="button"
+                onClick={() => setEditTime(t => ({ ...t, checkIn: '08:00', checkOut: '17:00' }))}
+                className="w-full text-xs font-medium text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 rounded-md px-3 py-1.5 transition-colors"
+              >
+                Isi Jam Template (08:00 - 17:00)
+              </button>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Jam Masuk</Label>
@@ -338,11 +345,11 @@ export function AttendanceTable({
               <div className="bg-muted/50 rounded-lg divide-y text-sm">
                 <div className="flex justify-between px-4 py-2.5">
                   <span className="text-muted-foreground">Jam Masuk</span>
-                  <span className="font-mono font-medium">{editTime.checkIn || '—'}</span>
+                  <span className="font-mono font-medium">{editTime.checkIn || '-'}</span>
                 </div>
                 <div className="flex justify-between px-4 py-2.5">
                   <span className="text-muted-foreground">Jam Pulang</span>
-                  <span className="font-mono font-medium">{editTime.checkOut || '—'}</span>
+                  <span className="font-mono font-medium">{editTime.checkOut || '-'}</span>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">

@@ -31,7 +31,7 @@ export default function GallerySection() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Galeri Ichikara</h1>
-          <p className="text-sm text-muted-foreground">Dokumentasi foto kegiatan — tersimpan di Google Drive.</p>
+          <p className="text-sm text-muted-foreground">Dokumentasi foto kegiatan - tersimpan di Google Drive.</p>
         </div>
 
         {/* Tab bar */}
