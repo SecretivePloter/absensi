@@ -3,7 +3,7 @@ import { clsx } from 'clsx'
 import {
   LayoutDashboard, Users, ScanLine,
   ClipboardList, Settings, Moon, Sun, LogOut, Menu, X, CreditCard, Images,
-  Shield
+  Shield, FileBarChart
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuthStore } from '../store/useAuthStore'
@@ -15,6 +15,7 @@ const allNavItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'operator'] },
   { to: '/users', icon: Users, label: 'Pengguna', roles: ['admin'] },
   { to: '/attendance/manual', icon: ClipboardList, label: 'Absensi Manual', roles: ['admin'] },
+  { to: '/attendance/recap', icon: FileBarChart, label: 'Rekap Absen', roles: ['admin'] },
   { to: '/id-card', icon: CreditCard, label: 'ID Card', roles: ['admin'] },
   { to: '/gallery', icon: Images, label: 'Galeri', roles: ['admin'] },
   { to: '/settings', icon: Settings, label: 'Pengaturan', roles: ['admin'] },

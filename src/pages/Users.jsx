@@ -458,7 +458,7 @@ export default function Users() {
       <Dialog open={!!qrModalUser} onClose={() => setQrModalUser(null)}>
         <DialogContent onClose={() => setQrModalUser(null)} className="max-w-xs">
           <DialogHeader>
-            <DialogTitle>QR Code — {qrModalUser?.name}</DialogTitle>
+            <DialogTitle>QR Code: {qrModalUser?.name}</DialogTitle>
           </DialogHeader>
           <div className="p-6 pt-2 flex flex-col items-center gap-3">
             <Badge variant={roleBadgeVariant(qrModalUser?.role)}>
@@ -520,7 +520,7 @@ export default function Users() {
               />
               {newRoleLabel.trim() && (
                 <p className="text-xs text-muted-foreground">
-                  Kode role: <span className="font-mono">{slugifyRole(newRoleLabel) || '—'}</span>
+                  Kode role: <span className="font-mono">{slugifyRole(newRoleLabel) || '-'}</span>
                 </p>
               )}
             </div>

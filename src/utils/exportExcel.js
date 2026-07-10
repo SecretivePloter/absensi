@@ -120,7 +120,7 @@ export function exportAttendanceToExcel(records, filename = 'absensi') {
   ])
 
   const ws = buildStyledSheet({
-    title: 'Rekap Absensi — Ichikara',
+    title: 'Rekap Absensi - Ichikara',
     subtitle: `${exportStamp()} · ${records.length} record`,
     headers,
     rows,
@@ -145,7 +145,7 @@ export function exportUsersToExcel(users, filename = 'users') {
   ])
 
   const ws = buildStyledSheet({
-    title: 'Daftar Pengguna — Ichikara',
+    title: 'Daftar Pengguna - Ichikara',
     subtitle: `${exportStamp()} · ${users.length} pengguna`,
     headers,
     rows,

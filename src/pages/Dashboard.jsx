@@ -215,26 +215,26 @@ export default function Dashboard() {
     let rows = [], title = ''
 
     if (type === 'hadir') {
-      title = `Sudah Hadir — ${groupLabel}`
+      title = `Sudah Hadir: ${groupLabel}`
       rows = Object.entries(hadirMap).map(([uid, a]) => ({
         id: uid,
-        name: userMap[uid]?.name ?? '—',
+        name: userMap[uid]?.name ?? '-',
         role: userMap[uid]?.role ?? '',
         check_in_at: a.check_in_at,
         check_out_at: a.check_out_at,
       })).sort((a, b) => a.name.localeCompare(b.name, 'id'))
 
     } else if (type === 'izin_sakit') {
-      title = `Izin / Sakit — ${groupLabel}`
+      title = `Izin / Sakit: ${groupLabel}`
       rows = Object.entries(izinSakitMap).map(([uid, a]) => ({
         id: uid,
-        name: userMap[uid]?.name ?? '—',
+        name: userMap[uid]?.name ?? '-',
         role: userMap[uid]?.role ?? '',
         absence_reason: a.absence_reason,
       })).sort((a, b) => a.name.localeCompare(b.name, 'id'))
 
     } else if (type === 'alpha') {
-      title = `Belum Hadir / Alpha — ${groupLabel}`
+      title = `Belum Hadir / Alpha: ${groupLabel}`
       rows = groupUsers
         .filter(u => !allAttSet.has(u.id))
         .map(u => ({ id: u.id, name: u.name, role: u.role }))
@@ -300,7 +300,7 @@ export default function Dashboard() {
   const groupTabs = [
     { key: 'all', label: 'Semua' },
     { key: 'staff', label: 'Staff & Sensei' },
-    ...classes.map(c => ({ key: c.id, label: `Murid — ${c.name}` })),
+    ...classes.map(c => ({ key: c.id, label: `Murid - ${c.name}` })),
   ]
 
   // ── Stat cards ────────────────────────────────────────────────────────────────
@@ -342,8 +342,8 @@ export default function Dashboard() {
               key={tab.key}
               onClick={() => setGroupFilter(tab.key)}
               className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors border ${groupFilter === tab.key
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground'
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground'
                 }`}
             >
               {tab.label}
@@ -467,7 +467,7 @@ export default function Dashboard() {
                       <div className="text-right shrink-0">
                         <div className="flex items-center gap-1 text-xs text-green-600">
                           <Clock className="h-3 w-3" />
-                          {row.check_in_at ? format(new Date(row.check_in_at), 'HH:mm') : '—'}
+                          {row.check_in_at ? format(new Date(row.check_in_at), 'HH:mm') : '-'}
                         </div>
                         {row.check_out_at && (
                           <div className="text-xs text-muted-foreground">

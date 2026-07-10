@@ -99,7 +99,7 @@ export default function Scan() {
       }
 
       if (!user.is_active) {
-        setResult({ type: 'error', message: `${user.name} — Akun nonaktif` })
+        setResult({ type: 'error', message: `${user.name} - Akun nonaktif` })
         setScanState('error')
         finish(2500)
         return
@@ -220,7 +220,7 @@ export default function Scan() {
       }, 5000)
     } catch (err) {
       console.error(err)
-      setResult({ type: 'error', message: 'Gagal menyimpan alasan' })
+      setResult({ type: 'error', message: `Gagal menyimpan alasan: ${err.message || 'Kesalahan tidak diketahui'}` })
       setScanState('error')
       setTimeout(() => {
         setScanState('idle')
@@ -378,7 +378,7 @@ export default function Scan() {
                   <h2 className="text-2xl sm:text-3xl font-bold mt-0.5">{firstName(result.user.name)}</h2>
                   <p className="text-gray-400 text-xs mt-1">
                     {roleLabel(result.user.role)}
-                    {result.user.classes?.name ? ` — ${result.user.classes.name}` : ''}
+                    {result.user.classes?.name ? ` - ${result.user.classes.name}` : ''}
                   </p>
                 </div>
                 <div className="bg-green-500/20 border border-green-500/50 rounded-xl px-4 sm:px-5 py-2">
@@ -442,7 +442,7 @@ export default function Scan() {
                     <>
                       <p className="text-yellow-400 font-semibold text-sm">Baru Saja Absen Masuk</p>
                       <p className="text-yellow-300/70 text-xs">
-                        Pukul {format(new Date(result.checkInAt), 'HH:mm:ss')} — scan pulang 5 menit setelah masuk
+                        Pukul {format(new Date(result.checkInAt), 'HH:mm:ss')} - scan pulang 5 menit setelah masuk
                       </p>
                     </>
                   )}

@@ -252,7 +252,7 @@ export default function UserDetail() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">
-                Kalender Kehadiran — {format(viewMonth, 'MMMM yyyy', { locale: id })}
+                Kalender Kehadiran: {format(viewMonth, 'MMMM yyyy', { locale: id })}
               </CardTitle>
               <div className="flex gap-1">
                 <Button
@@ -311,7 +311,7 @@ export default function UserDetail() {
                     <p key={h.str} className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5">
                       <span className="inline-block h-2 w-2 rounded-full bg-red-500 shrink-0" />
                       <span className="font-medium">{format(h.date, 'd MMM', { locale: id })}</span>
-                      <span className="text-muted-foreground">— {h.name}</span>
+                      <span className="text-muted-foreground">- {h.name}</span>
                     </p>
                   ))}
                 </div>
@@ -380,10 +380,10 @@ export default function UserDetail() {
                         {format(new Date(r.date), 'EEE, d MMM yyyy', { locale: id })}
                       </td>
                       <td className="p-3 font-mono text-xs">
-                        {r.check_in_at ? format(new Date(r.check_in_at), 'HH:mm:ss') : <span className="text-muted-foreground">—</span>}
+                        {r.check_in_at ? format(new Date(r.check_in_at), 'HH:mm:ss') : <span className="text-muted-foreground">-</span>}
                       </td>
                       <td className="p-3 font-mono text-xs">
-                        {r.check_out_at ? format(new Date(r.check_out_at), 'HH:mm:ss') : <span className="text-muted-foreground">—</span>}
+                        {r.check_out_at ? format(new Date(r.check_out_at), 'HH:mm:ss') : <span className="text-muted-foreground">-</span>}
                       </td>
                       <td className="p-3 hidden md:table-cell">
                         {r.absence_reason ? (
@@ -394,7 +394,7 @@ export default function UserDetail() {
                           <Badge variant={r.early_checkout_reason === 'dinas_keluar' ? 'success' : r.early_checkout_reason === 'sakit' ? 'warning' : 'outline'}>
                             {{ izin: 'Izin', sakit: 'Sakit', dinas_keluar: 'Dinas Keluar', others: 'Lainnya' }[r.early_checkout_reason]}
                           </Badge>
-                        ) : <span className="text-muted-foreground">—</span>}
+                        ) : <span className="text-muted-foreground">-</span>}
                       </td>
                       <td className="p-3 hidden md:table-cell text-muted-foreground text-xs">
                         {r.locations?.name ?? '-'}
@@ -447,7 +447,7 @@ export default function UserDetail() {
       <Dialog open={qrOpen} onClose={() => setQrOpen(false)}>
         <DialogContent onClose={() => setQrOpen(false)} className="max-w-xs">
           <DialogHeader>
-            <DialogTitle>QR Code — {user.name}</DialogTitle>
+            <DialogTitle>QR Code: {user.name}</DialogTitle>
           </DialogHeader>
           <div className="p-6 pt-2 flex flex-col items-center gap-3">
             <QRCodeDisplay value={user.qr_code} userName={user.name} size={200} />
@@ -468,6 +468,13 @@ export default function UserDetail() {
                   · {format(new Date(editTime.date + 'T12:00:00'), 'EEEE, d MMM yyyy', { locale: id })}
                 </span>
               </div>
+              <button
+                type="button"
+                onClick={() => setEditTime(t => ({ ...t, checkIn: '08:00', checkOut: '17:00' }))}
+                className="w-full text-xs font-medium text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 rounded-md px-3 py-1.5 transition-colors"
+              >
+                Isi Jam Template (08:00 - 17:00)
+              </button>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Jam Masuk</Label>
@@ -504,11 +511,11 @@ export default function UserDetail() {
               <div className="bg-muted/50 rounded-lg divide-y text-sm">
                 <div className="flex justify-between px-4 py-2.5">
                   <span className="text-muted-foreground">Jam Masuk</span>
-                  <span className="font-mono font-medium">{editTime.checkIn || '—'}</span>
+                  <span className="font-mono font-medium">{editTime.checkIn || '-'}</span>
                 </div>
                 <div className="flex justify-between px-4 py-2.5">
                   <span className="text-muted-foreground">Jam Pulang</span>
-                  <span className="font-mono font-medium">{editTime.checkOut || '—'}</span>
+                  <span className="font-mono font-medium">{editTime.checkOut || '-'}</span>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
