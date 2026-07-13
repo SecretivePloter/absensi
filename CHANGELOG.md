@@ -4,7 +4,40 @@ Format: `[Tanggal] Versi / Sesi — Deskripsi`
 
 ---
 
-## [2026-07-10] Sesi 3 — Bug Fix & Feature Update
+## [2026-07-13] Sesi 4 — Redesain ID Card
+
+### 🎨 Desain Baru ID Card (PT ICHIKARA)
+
+#### Folder Prototype
+- **Folder baru:** `prototype/`
+  - `prototype/IDCardPrototype.html` — Preview standalone desain baru (buka langsung di browser)
+  - `prototype/README.md` — Dokumentasi folder prototype
+
+#### Implementasi ke Project Utama
+- **File diubah:** `src/pages/IDCard.jsx`
+  - Desain lama (2 sisi berdampingan landscape) diganti dengan desain baru portrait
+  - **Desain baru:** Mengikuti template resmi PT ICHIKARA:
+    - Background geometris SVG (rose `#f0b8c4` · biru muda `#a8d5e2` · abu-abu `#8a8fa8`) di pojok kanan atas dan kiri bawah
+    - Header terpusat: logo PT ICHIKARA (atas) + teks **PT ICHIKARA** tebal (bawah)
+    - Area foto kotak dengan rounded corner dan shadow
+    - Garis pemisah navy `#1a1a6e`
+    - Nama KAPITAL tebal → Jabatan KAPITAL biru → NIK (jika ada)
+  - Ukuran kertas diperbarui: `85,6 × 135mm` portrait
+  - Import `QRCodeLib` dihapus (tidak lagi digunakan)
+  - Teks info tip diperbarui ke ukuran kertas baru
+
+#### Implementasi Data NIK (Nomor Induk Karyawan)
+- **Migration baru:** `supabase/migrations/012_add_user_nik.sql` — Menambahkan kolom `nik` (TEXT) ke tabel `users`.
+- **File diubah:** `src/pages/Users.jsx`
+  - Field input **NIK** ditambahkan ke halaman manajemen pengguna (opsional).
+  - Kolom `nik` disertakan dalam fetch, state form, load form edit, dan save ke Supabase.
+- **File diubah:** `src/pages/IDCard.jsx`
+  - Kolom `nik` ditambahkan ke dalam fetch data Supabase.
+  - Kartu otomatis menampilkan baris `NIK: xxxx-xxxx` di bawah Jabatan jika user memiliki NIK.
+
+---
+
+
 
 ### 🐛 Bug Fix
 
