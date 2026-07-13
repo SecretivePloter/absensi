@@ -17,7 +17,7 @@ import { useToast } from '../components/ui/toast'
 import { exportUsersToExcel } from '../utils/exportExcel'
 import { FileSpreadsheet } from 'lucide-react'
 
-const emptyForm = { name: '', role: 'student', class_id: '', phone: '', qr_code: '', photo_url: '' }
+const emptyForm = { name: '', role: 'student', class_id: '', phone: '', qr_code: '', photo_url: '', nik: '' }
 
 export default function Users() {
   const toast = useToast()
@@ -110,6 +110,7 @@ export default function Users() {
       phone: u.phone || '',
       qr_code: u.qr_code,
       photo_url: u.photo_url || '',
+      nik: u.nik || '',
     })
     setPhotoFile(null)
     setPhotoPreview(u.photo_url || '')
@@ -158,6 +159,7 @@ export default function Users() {
         phone: form.phone || null,
         qr_code: form.qr_code || crypto.randomUUID(),
         photo_url: photoUrl,
+        nik: form.nik || null,
       }
 
       if (editing) {
@@ -397,6 +399,15 @@ export default function Users() {
                   placeholder="08xxxxxxxxxx"
                   value={form.phone}
                   onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>NIK</Label>
+                <Input
+                  type="text"
+                  placeholder="NIK (Opsional)"
+                  value={form.nik}
+                  onChange={e => setForm(f => ({ ...f, nik: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
