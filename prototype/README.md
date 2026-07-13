@@ -34,4 +34,3 @@ Folder ini berisi fitur-fitur **eksperimental** sebelum di-deploy ke project uta
 ## 📋 Fitur Eksperimental
 
 - [x] Desain ID Card baru PT ICHIKARA (geometric background)
-- [ ] Fitur lain menyusul...
