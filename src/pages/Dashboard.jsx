@@ -76,6 +76,7 @@ export default function Dashboard() {
         // Fetch group users
         let query = supabase.from('users').select('id, name, role')
         if (groupFilter === 'staff') query = query.in('role', STAFF_ROLES)
+        else if (groupFilter.startsWith('role:')) query = query.eq('role', groupFilter.slice(5))
         else query = query.eq('class_id', groupFilter)
         const { data: groupUsers } = await query.eq('is_active', true)
         const ids = (groupUsers || []).map(u => u.id)
@@ -111,7 +112,9 @@ export default function Dashboard() {
         const alphaCount = Math.max(0, total - hadirCount - izinSakitCount)
         const groupLabel = groupFilter === 'staff'
           ? 'Staff & Sensei'
-          : `Murid ${classes.find(c => c.id === groupFilter)?.name ?? ''}`
+          : groupFilter.startsWith('role:')
+            ? roleLabel(groupFilter.slice(5), roles)
+            : `Murid ${classes.find(c => c.id === groupFilter)?.name ?? ''}`
 
         setStats({
           mode: 'group',
@@ -177,6 +180,9 @@ export default function Dashboard() {
     } else if (groupFilter === 'staff') {
       const { data } = await supabase.from('users').select('id, name, role').in('role', STAFF_ROLES).eq('is_active', true)
       groupUsers = data || []
+    } else if (groupFilter.startsWith('role:')) {
+      const { data } = await supabase.from('users').select('id, name, role').eq('role', groupFilter.slice(5)).eq('is_active', true)
+      groupUsers = data || []
     } else {
       const { data } = await supabase.from('users').select('id, name, role').eq('class_id', groupFilter).eq('is_active', true)
       groupUsers = data || []
@@ -210,7 +216,8 @@ export default function Dashboard() {
 
     const groupLabel = groupFilter === 'all' ? 'Semua'
       : groupFilter === 'staff' ? 'Staff & Sensei'
-        : `Murid ${classes.find(c => c.id === groupFilter)?.name ?? ''}`
+        : groupFilter.startsWith('role:') ? roleLabel(groupFilter.slice(5), roles)
+          : `Murid ${classes.find(c => c.id === groupFilter)?.name ?? ''}`
 
     let rows = [], title = ''
 
@@ -297,9 +304,12 @@ export default function Dashboard() {
   }
 
   // ── Group tabs ────────────────────────────────────────────────────────────────
+  const studentRoles = roles.filter(r => !r.is_staff && r.value !== 'student')
+
   const groupTabs = [
     { key: 'all', label: 'Semua' },
     { key: 'staff', label: 'Staff & Sensei' },
+    ...studentRoles.map(r => ({ key: `role:${r.value}`, label: r.label })),
     ...classes.map(c => ({ key: c.id, label: `Murid - ${c.name}` })),
   ]
 

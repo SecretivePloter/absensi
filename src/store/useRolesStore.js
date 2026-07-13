@@ -49,11 +49,12 @@ export const useRolesStore = create((set, get) => ({
     return inflight
   },
 
-  // Tambah role baru (selalu tipe staff/karyawan). Mengembalikan baris tersimpan.
+  // Tambah role baru. Pengecekan nama untuk menentukan tipe is_staff otomatis.
   async addRole({ value, label }) {
+    const isStudent = /murid|student|siswa/i.test(label)
     const { data, error } = await supabase
       .from('roles')
-      .insert({ value, label, is_staff: true, sort_order: 100 })
+      .insert({ value, label, is_staff: !isStudent, sort_order: 100 })
       .select('value,label,is_staff,sort_order')
       .single()
     if (error) throw error

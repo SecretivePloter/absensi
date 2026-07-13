@@ -35,6 +35,14 @@ Format: `[Tanggal] Versi / Sesi — Deskripsi`
   - Kolom `nik` ditambahkan ke dalam fetch data Supabase.
   - Kartu otomatis menampilkan baris `NIK: xxxx-xxxx` di bawah Jabatan jika user memiliki NIK.
 
+#### Perbaikan Filter Kategori "Murid" di Dashboard
+- **Migration baru:** `supabase/migrations/013_fix_murid_roles.sql` — Mengubah kolom `is_staff` menjadi `false` untuk semua role kustom yang mengandung nama "murid", "student", atau "siswa" (misalnya "Murid TG").
+- **File diubah:** `src/store/useRolesStore.js`
+  - Logika pembuatan role baru (`addRole`) kini otomatis mengatur tipe `is_staff: false` jika nama role memuat unsur murid/student/siswa.
+- **File diubah:** `src/pages/Dashboard.jsx`
+  - Data custom role (seperti "Murid TG") kini dikeluarkan dari perhitungan & summary grup "Staff & Sensei".
+  - Tab independen baru (contoh: "Murid TG") akan otomatis muncul di rentetan tab filter Dashboard, memisahkan data absensinya secara spesifik.
+
 ---
 
 
