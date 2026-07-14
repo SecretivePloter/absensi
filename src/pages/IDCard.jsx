@@ -33,11 +33,17 @@ async function printMassIDCards(users) {
       ? `<div class="info-nik">NIK: ${nikValue}</div>`
       : ''
 
-    const qrDataUrl = await QRCodeLib.toDataURL(user.qr_code, {
-      width: 180,
-      margin: 1,
-      color: { dark: '#0f172a', light: '#ffffff' }
-    })
+    let qrDataUrl = ''
+    try {
+      const qrData = user.qr_code || `no-qr-${user.id}`
+      qrDataUrl = await QRCodeLib.toDataURL(qrData, {
+        width: 180,
+        margin: 1,
+        color: { dark: '#0f172a', light: '#ffffff' }
+      })
+    } catch (err) {
+      console.error('Error generating QR', err)
+    }
 
     cardsHtml += `
       <div class="user-row">
@@ -75,12 +81,16 @@ async function printMassIDCards(users) {
              <polygon points="200,0 242,0 242,50" fill="#e2e8f0" />
              <polygon points="0,332 42,382 0,382" fill="#e2e8f0" />
           </svg>
-          <div class="card-content" style="align-items: center; justify-content: center; padding: 5mm;">
+          <div class="card-content" style="align-items: center; justify-content: center; padding: 4mm;">
+             <img src="${logoUrl}" style="height: 6mm; object-fit: contain; margin-bottom: 2mm;" onerror="this.style.display='none'" />
              <p style="font-size: 7.5pt; color: #334155; text-align: center; margin-bottom: 3.5mm; font-weight: bold; text-transform: uppercase;">
                 Kartu Identitas
              </p>
-             <img src="${qrDataUrl}" style="width: 32mm; height: 32mm; mix-blend-mode: multiply;" />
-             <p style="font-size: 6pt; color: #64748b; text-align: center; margin-top: 3mm; line-height: 1.3;">
+             <img src="${qrDataUrl}" style="width: 30mm; height: 30mm; mix-blend-mode: multiply;" />
+             <p style="font-size: 8.5pt; color: #0a0a0a; text-align: center; margin-top: 2.5mm; font-weight: 900; text-transform: uppercase;">
+                ${user.name}
+             </p>
+             <p style="font-size: 6pt; color: #64748b; text-align: center; margin-top: 1.5mm; line-height: 1.3;">
                 Gunakan QR Code ini<br/>untuk presensi absen.
              </p>
           </div>
@@ -107,15 +117,14 @@ async function printMassIDCards(users) {
       background: #fff;
     }
     .print-container {
-      display: flex;
-      flex-direction: column;
-      gap: 5mm;
+      display: block; /* Mencegah bug flex-wrap yang memotong halaman pada browser saat di-print */
     }
     /* Mencegah terpotong per beda baris row */
     .user-row {
       display: flex;
       gap: 4mm;
       page-break-inside: avoid;
+      margin-bottom: 5mm;
     }
     .card {
       width: 54mm;
