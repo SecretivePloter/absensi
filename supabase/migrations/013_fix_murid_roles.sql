@@ -4,4 +4,5 @@ UPDATE roles
 SET is_staff = false 
 WHERE value ILIKE '%murid%' 
    OR value ILIKE '%student%' 
-   OR value ILIKE '%siswa%';
+   OR value ILIKE '%siswa%'
+   OR value ILIKE '%GST%';

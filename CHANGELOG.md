@@ -42,6 +42,15 @@ Format: `[Tanggal] Versi / Sesi — Deskripsi`
 - **File diubah:** `src/pages/Dashboard.jsx`
   - Data custom role (seperti "Murid TG") kini dikeluarkan dari perhitungan & summary grup "Staff & Sensei".
   - Tab independen baru (contoh: "Murid TG") akan otomatis muncul di rentetan tab filter Dashboard, memisahkan data absensinya secara spesifik.
+#### Pembaruan Fitur ID Card Generator
+- **Ukuran Kartu:** Disesuaikan menjadi `54mm x 85.6mm` (CR80 standard) *portrait*.
+- **Pencetakan Massal & Tata Letak Side-by-Side:**
+  - Satu user kini disajikan 2 kartu mendatar: Sisi Depan (desain identitas) dan Sisi Belakang (QR Code).
+  - Admin dapat mencetak banyak kartu secara bersamaan pada satu kertas A4.
+  - Template cetak (`window.print`) dimodifikasi dengan ukuran `@page { size: A4 }` guna memastikan halaman tidak terpotong (page-break diatur rapi).
+- **UI Management (src/pages/IDCard.jsx):**
+  - Terdapat kolom **Checkbox** baru pada tabel daftar pengguna beserta fitur "Pilih Semua".
+  - Floating action **Cetak N Kartu Pilihan** diaktifkan.
 
 ---
 
