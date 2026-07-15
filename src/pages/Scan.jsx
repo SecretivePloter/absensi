@@ -5,7 +5,7 @@ import { CheckCircle2, XCircle, AlertCircle, MapPin, LogOut, Maximize, Minimize,
 import { supabase } from '../lib/supabase'
 import { QRScanner } from '../components/QRScanner'
 import { Spinner } from '../components/ui/spinner'
-import { useRoles, roleLabel } from '../store/useRolesStore'
+import { useRoles, roleLabel, isStaffRole } from '../store/useRolesStore'
 
 const CHECKOUT_MIN_GAP_MS = 5 * 60 * 1000
 const EARLY_CHECKOUT_HOUR = 17
@@ -153,15 +153,15 @@ export default function Scan() {
           return
         }
 
-        // Pulang lebih awal → tampilkan pilihan alasan
-        if (new Date().getHours() < EARLY_CHECKOUT_HOUR) {
+        // Pulang lebih awal → tampilkan pilihan alasan hanya untuk staff/karyawan
+        if (new Date().getHours() < EARLY_CHECKOUT_HOUR && isStaffRole(user.role)) {
           setEarlyCheckout({ user, existingId: existing.id, checkInAt: existing.check_in_at })
           setScanState('reason')
           // lockRef tetap true — dilepas setelah reason dipilih
           return
         }
 
-        // Pulang normal (≥ 17:00)
+        // Pulang normal (≥ 17:00) atau untuk murid pulang cepat
         const { error: updateErr } = await supabase
           .from('attendance')
           .update({ check_out_at: new Date().toISOString() })
