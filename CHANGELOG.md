@@ -4,6 +4,16 @@ Format: `[Tanggal] Versi / Sesi — Deskripsi`
 
 ---
 
+## [2026-07-15] Pembaruan Logika Absensi Murid
+
+### 💡 Pembaruan Logika Checkout Lebih Awal (Early Checkout)
+
+- **File diubah:** `src/pages/Scan.jsx`
+  - Memperbarui evaluasi logika scan pulang di bawah jam 17:00 (Early checkout).
+  - Menyambungkan fungsi bantuan `isStaffRole` untuk mengenali tipe dari role sistem sang user.
+  - Saat ini *popup modal* pemilih alasan saat pulang lebih awal HANYA diperuntukkan kepada mereka dengan status karyawan / *staff*.
+  - Sebaliknya, para murid/siswa (termasuk role kastem khusus siswa seperti "Murid TG") akan langsung berhasil pulang/keluar ketika men-scan kehadiran dan sistem mengabaikan peringatan tersebut.
+
 ## [2026-07-13] Sesi 4 — Redesain ID Card
 
 ### 🎨 Desain Baru ID Card (PT ICHIKARA)
