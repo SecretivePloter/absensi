@@ -27,13 +27,10 @@ export function QRScanner({ onScan, onError, facingMode = 'environment' }) {
     scannerRef.current = scanner
     let active = true
 
-    const qrboxFn = (viewfinderWidth, viewfinderHeight) => {
-      const minDim = Math.min(viewfinderWidth, viewfinderHeight)
-      const size = Math.max(200, Math.floor(minDim * 0.7))
-      return { width: size, height: size }
-    }
-
-    const startConfig = { fps: 10, qrbox: qrboxFn }
+    const startConfig = {
+      fps: 15,
+      disableFlip: false // allow flipped codes for better detection
+    };
     const decodeSuccess = (text) => onScanRef.current?.(text)
     const decodeError = () => { } // per-frame decode errors are normal
 
