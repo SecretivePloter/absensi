@@ -4,6 +4,25 @@ Format: `[Tanggal] Versi / Sesi — Deskripsi`
 
 ---
 
+## [2026-07-20] Pembaruan & Perbaikan Scanner QR
+
+### ✨ Peningkatan Scanner (Kecepatan & Responsivitas)
+
+- **File diubah:** `src/components/QRScanner.jsx`
+  - Menghapus konfigurasi `qrbox` yang kaku agar area pemindaian otomatis memindai seluruh tangkapan layar (full-frame).
+  - Mengubah opsi `disableFlip: false` sehingga scanner dapat mendeteksi barcode yang terbalik atau kondisi gambar *mirrored*.
+  - Meningkatkan Frame-Per-Second (`fps`) menjadi `15` agar pembacaan lebih halus dan *real-time*.
+
+### 🐛 Bug Fix
+
+#### Scanner Bengong (Freeze) Menyusul Pilihan Early Checkout
+- **Masalah:** Ketika staf memindai kode pulang sebelum jam 17:00, akan muncul *prompt* pemilihan alasan. Jika staf tidak jadi memilih alasan, UI akan terkunci secara permanen (menjadi "bengong") dan tidak bisa melanjutkan _scan_ orang lain sebelum di-refresh.
+- **File diubah:** `src/pages/Scan.jsx`
+  - Menambahkan fungsi pembatalan (`handleCancelReason`) untuk mereset status dan membebaskan kunci antarmuka (*lockRef*).
+  - Memasukkan tombol **"Batal"** pada *prompt* UI tersebut sehingga pembacaan scanner dapat dilanjutkan dengan normal tanpa perlu memuat ulang halaman browser.
+
+---
+
 ## [2026-07-15] Pembaruan Logika Absensi Murid
 
 ### 💡 Pembaruan Logika Checkout Lebih Awal (Early Checkout)

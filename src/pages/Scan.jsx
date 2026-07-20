@@ -231,6 +231,13 @@ export default function Scan() {
     }
   }, [earlyCheckout])
 
+  const handleCancelReason = useCallback(() => {
+    setScanState('idle')
+    setResult(null)
+    setEarlyCheckout(null)
+    lockRef.current = false
+  }, [])
+
   const currentLocationName = locations.find(l => l.id === locationId)?.name
   const [isFullscreen, setIsFullscreen] = useState(false)
 
@@ -354,6 +361,12 @@ export default function Scan() {
                       <div className="font-medium text-xs">{label}</div>
                     </button>
                   ))}
+                  <button
+                    onClick={handleCancelReason}
+                    className="col-span-2 mt-1 sm:mt-2 bg-gray-800 hover:bg-gray-700 active:scale-95 transition-all rounded-xl p-2.5 text-center border border-gray-600 text-gray-300 focus:outline-none text-xs font-semibold"
+                  >
+                    Batal
+                  </button>
                 </div>
               </div>
             )}
