@@ -12,7 +12,8 @@ import { Spinner } from '../components/ui/spinner'
 import { useToast } from '../components/ui/toast'
 import { ClassesManager } from './Classes'
 import { LocationsManager } from './Locations'
-import { useRoles, useRolesStore, slugifyRole, BUILTIN_ROLES } from '../store/useRolesStore'
+import { useRoles, useRolesStore, slugifyRole, BUILTIN_ROLES, isStaffRole } from '../store/useRolesStore'
+import { exportMassStaffAttendance } from '../utils/exportExcel'
 
 // Role bawaan tidak boleh dihapus (dipakai logika inti aplikasi).
 const PROTECTED = new Set(BUILTIN_ROLES.map(r => r.value))
@@ -172,10 +173,132 @@ function RolesManager() {
   )
 }
 
+function MassExportManager() {
+  const toast = useToast()
+
+  // Default to current year-month
+  const now = new Date()
+  const currentMonthValue = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const [monthStr, setMonthStr] = useState(currentMonthValue)
+  const [exporting, setExporting] = useState(false)
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      if (!monthStr) throw new Error('Pilih bulan terlebih dahulu.')
+
+      // Hitung periode dari 21 bulan lalu ke 20 bulan yg dipilih
+      const [y, m] = monthStr.split('-').map(Number)
+      const dateSelected = new Date(y, m - 1) // m is 1-based, getMonth is 0-based
+
+      const startDate = new Date(dateSelected)
+      startDate.setMonth(startDate.getMonth() - 1)
+      startDate.setDate(21)
+
+      const endDate = new Date(dateSelected)
+      endDate.setDate(20)
+
+      const startLabel = startDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+      const endLabel = endDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+      const periodLabel = `${startLabel} - ${endLabel}`
+
+      const startStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`
+      const endStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`
+
+      // 1. Ambil list semua pengguna yang aktif (atau yang pernah aktif & punya data absensi)
+      // Kita abaikan is_active untuk berjaga jika staff sudah nonaktif tapi ada gajj. 
+      const { data: users, error: errU } = await supabase
+        .from('users')
+        .select('id, name, role')
+
+      if (errU) throw errU
+
+      const staffUsers = users.filter(u => isStaffRole(u.role))
+      if (staffUsers.length === 0) {
+        throw new Error('Tidak ada akun staff ditemukan.')
+      }
+
+      const staffIds = staffUsers.map(u => u.id)
+
+      // 2. Ambil absensinya semua sekaligus
+      const { data: attendance, error: errA } = await supabase
+        .from('attendance')
+        .select(`
+          id, user_id, date, check_in_at, check_out_at, method, early_checkout_reason, notes,
+          locations (name)
+        `)
+        .in('user_id', staffIds)
+        .gte('date', startStr)
+        .lte('date', endStr)
+        .order('date', { ascending: true })
+
+      if (errA) throw errA
+
+      // 3. Kelompokkan absen berdasarkan staf
+      // Hasil akhir: array isi { staffName, records: [...] }
+      const recordsByStaff = staffUsers.map(staff => {
+        return {
+          staffName: staff.name,
+          records: attendance.filter(a => a.user_id === staff.id)
+        }
+      })
+
+      // Sort staff berdasarkan nama untuk output berurut
+      recordsByStaff.sort((a, b) => a.staffName.localeCompare(b.staffName))
+
+      // 4. Ekspor ke Excel
+      exportMassStaffAttendance(recordsByStaff, periodLabel, `Rekap_Bulan_${monthStr}`)
+      toast({ title: 'Ekspor berhasi!', description: `Mengekspor ${recordsByStaff.length} entri staf.`, variant: 'success' })
+
+    } catch (err) {
+      console.error(err)
+      toast({ title: 'Gagal mengekspor data', description: err.message, variant: 'error' })
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6 max-w-lg">
+      <div>
+        <h1 className="text-xl font-bold">Ekspor Massal Absensi</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Unduh laporan absensi bagi semua akun staff (HRD, Sensei, Director, dll). Masing-masing orang disajikan pada <i>Sheet</i> tersendiri.
+        </p>
+      </div>
+
+      <Card>
+        <CardContent className="p-5 space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="periodMonth">Bulan Acuan</Label>
+            <Input
+              id="periodMonth"
+              type="month"
+              value={monthStr}
+              onChange={e => setMonthStr(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Catatan: Periode rekap ditetapkan otomatis dari tanggal <strong>21 bulan sebelumnya</strong> ke <strong>20 bulan yang dipilih</strong>.
+            </p>
+          </div>
+
+          <Button onClick={handleExport} disabled={exporting || !monthStr} className="w-full">
+            {exporting ? <Spinner size="sm" className="mr-2" /> : null}
+            {exporting ? 'Menyusun File Excel...' : 'Ekspor Laporan (Excel)'}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+import { Download } from 'lucide-react'
+
 const TABS = [
   { key: 'classes', label: 'Kelas', icon: BookOpen },
   { key: 'locations', label: 'Lokasi', icon: MapPin },
   { key: 'roles', label: 'Role', icon: Shield },
+  { key: 'export', label: 'Ekspor Massal', icon: Download },
 ]
 
 export default function Settings() {
@@ -210,6 +333,7 @@ export default function Settings() {
           {tab === 'classes' && <ClassesManager />}
           {tab === 'locations' && <LocationsManager />}
           {tab === 'roles' && <RolesManager />}
+          {tab === 'export' && <MassExportManager />}
         </div>
       </div>
     </Layout>
