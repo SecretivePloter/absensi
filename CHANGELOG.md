@@ -2,6 +2,20 @@
 
 Format: `[Tanggal] Versi / Sesi — Deskripsi`
 
+## [2026-07-23] Ekspor Massal Absensi Staff
+
+### ✨ Fitur Baru: Ekspor Massal Absensi Staff (Semua Role Staff)
+
+- **Deskripsi:** Menambahkan fitur baru di dalam menu **Settings** untuk mengekspor data absensi dari seluruh pengguna dengan jabatan staf (seperti HRD, IT, Sensei, Director, dsb) secara otomatis dalam satu klik.
+- **Output:** Menghasilkan 1 buah file Excel (`.xlsx`), di mana masing-masing Staf dibuatkan *Sheet* absensinya sendiri di dalam file tersebut sesuai nama mereka.
+- **Filter Otomatis:** Sistem mendeteksi daftar staff secara otomatis dari pengaturan role. Semua role non-murid (is_staff) disertakan.
+- **Pemilihan Periode Absensi:**
+  - Telah disediakan form pemilihan "Bulan Acuan" (misal: Agustus 2026).
+  - Rentang rentang tanggal akan otomatis dihitung dari **tanggal 21 bulan lalu** sampai dengan **tanggal 20 bulan acuan**.
+- **File diubah:**
+  - `src/utils/exportExcel.js`: Menambah fungsi baru `exportMassStaffAttendance`.
+  - `src/pages/Settings.jsx`: Menambahkan Tab **Ekspor Massal** di Pengaturan, lengkap dengan form periode.
+
 ---
 
 ## [2026-07-20] Pembaruan & Perbaikan Scanner QR
