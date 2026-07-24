@@ -13,7 +13,7 @@ import { useToast } from '../components/ui/toast'
 import { ClassesManager } from './Classes'
 import { LocationsManager } from './Locations'
 import { useRoles, useRolesStore, slugifyRole, BUILTIN_ROLES, isStaffRole } from '../store/useRolesStore'
-import { exportMassStaffAttendance } from '../utils/exportExcel'
+import { exportMassPayrollReport } from '../utils/exportPayroll'
 
 // Role bawaan tidak boleh dihapus (dipakai logika inti aplikasi).
 const PROTECTED = new Set(BUILTIN_ROLES.map(r => r.value))
@@ -247,8 +247,13 @@ function MassExportManager() {
       recordsByStaff.sort((a, b) => a.staffName.localeCompare(b.staffName))
 
       // 4. Ekspor ke Excel
-      exportMassStaffAttendance(recordsByStaff, periodLabel, `Rekap_Bulan_${monthStr}`)
-      toast({ title: 'Ekspor berhasi!', description: `Mengekspor ${recordsByStaff.length} entri staf.`, variant: 'success' })
+      exportMassPayrollReport({
+        recordsByStaff,
+        periodStart: startDate,
+        periodEnd: endDate,
+        filename: `Rekap_Bulan_${monthStr}`
+      })
+      toast({ title: 'Ekspor berhasil!', description: `Mengekspor ${recordsByStaff.length} entri staf.`, variant: 'success' })
 
     } catch (err) {
       console.error(err)
