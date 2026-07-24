@@ -86,7 +86,7 @@ function injectPrintSetup(sheetXml) {
  * @param {Date}     opts.periodEnd    - tanggal akhir periode (mis. 20 bulan ini)
  * @returns {{ bytes: Uint8Array, filename: string }}
  */
-export function buildPayrollWorkbook({ user, records, periodStart, periodEnd }) {
+export function buildPayrollSheetData({ user, records, periodStart, periodEnd }) {
   const ws = {}
   const merges = []
   const rows = [] // tinggi baris per index
@@ -262,6 +262,13 @@ export function buildPayrollWorkbook({ user, records, periodStart, periodEnd }) 
   ws['!margins'] = { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 }
   ws['!printArea'] = ws['!ref']
 
+  return ws
+}
+
+export function buildPayrollWorkbook(opts) {
+  const { user, periodStart } = opts
+  const ws = buildPayrollSheetData(opts)
+
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Laporan')
 
@@ -286,6 +293,68 @@ export function buildPayrollWorkbook({ user, records, periodStart, periodEnd }) 
  */
 export function exportPayrollReport(opts) {
   const { bytes, filename } = buildPayrollWorkbook(opts)
+  const blob = new Blob([bytes], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+export function buildMassPayrollWorkbook({ recordsByStaff, periodStart, periodEnd, filename }) {
+  const wb = XLSX.utils.book_new()
+
+  recordsByStaff.forEach((staffData) => {
+    let sheetName = (staffData.staffName || 'Unknown').replace(/[\\/?*[\]]/g, '').trim()
+    if (sheetName.length > 31) sheetName = sheetName.substring(0, 31)
+    if (!sheetName) sheetName = 'Staff'
+
+    // Handle duplicate sheet names
+    let finalSheetName = sheetName
+    let counter = 1
+    while (wb.SheetNames.includes(finalSheetName)) {
+      const suffix = ` (${counter++})`
+      finalSheetName = sheetName.substring(0, 31 - suffix.length) + suffix
+    }
+
+    const ws = buildPayrollSheetData({
+      user: { name: staffData.staffName },
+      records: staffData.records,
+      periodStart,
+      periodEnd
+    })
+
+    XLSX.utils.book_append_sheet(wb, ws, finalSheetName)
+  })
+
+  // Jika tidak ada data sama sekali, buat sheet dummy
+  if (recordsByStaff.length === 0) {
+    const ws = buildPayrollSheetData({ user: { name: 'Kosong' }, records: [], periodStart, periodEnd })
+    XLSX.utils.book_append_sheet(wb, ws, 'Kosong')
+  }
+
+  const raw = XLSX.write(wb, { type: 'array', bookType: 'xlsx' })
+  const files = unzipSync(new Uint8Array(raw))
+
+  // Inject print setup to ALL sheets
+  for (const key of Object.keys(files)) {
+    if (key.startsWith('xl/worksheets/sheet') && key.endsWith('.xml')) {
+      const patched = injectPrintSetup(new TextDecoder().decode(files[key]))
+      files[key] = new TextEncoder().encode(patched)
+    }
+  }
+
+  const bytes = zipSync(files)
+  return { bytes, filename: `${filename}.xlsx` }
+}
+
+export function exportMassPayrollReport(opts) {
+  const { bytes, filename } = buildMassPayrollWorkbook(opts)
   const blob = new Blob([bytes], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   })
