@@ -66,26 +66,10 @@ export function QRScanner({ onScan, onError, facingMode = 'environment' }) {
           const fallbackCam = cameras[0]
           const chosenCam = preferred || fallbackCam
 
-          // --- 3. Try starting with facingMode constraint first (gives correct cam on mobile) ---
+          // --- 3. Start scanning with chosen camera ID ---
+          // Menggunakan camera ID untuk mencegah OverconstrainedError di desktop (yang menyebabkan freeze karena double-start)
           let started = false
           if (active) {
-            try {
-              await scanner.start(
-                { facingMode },
-                startConfig,
-                decodeSuccess,
-                decodeError
-              )
-              started = true
-            } catch (constraintErr) {
-              // OverconstrainedError — common on laptops that have no rear cam.
-              // Fall through to camera-ID approach.
-              console.warn(`facingMode '${facingMode}' failed, falling back to camera ID:`, constraintErr?.message || constraintErr)
-            }
-          }
-
-          // --- 4. Fallback: start by camera ID ---
-          if (!started && active) {
             try {
               await scanner.start(
                 chosenCam.id,
@@ -95,6 +79,7 @@ export function QRScanner({ onScan, onError, facingMode = 'environment' }) {
               )
               started = true
             } catch (idErr) {
+              console.warn('Gagal dengan kamera pilihan, mencoba semua kamera:', idErr?.message || idErr)
               // Last resort: try every camera
               for (const cam of cameras) {
                 if (!active || started) break
