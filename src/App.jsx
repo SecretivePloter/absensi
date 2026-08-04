@@ -7,6 +7,7 @@ import { Spinner } from './components/ui/spinner'
 
 import Login from './pages/Login'
 import Scan from './pages/Scan'
+import EventScan from './pages/EventScan'
 import Dashboard from './pages/Dashboard'
 import Users from './pages/Users'
 import UserDetail from './pages/UserDetail'
@@ -15,6 +16,8 @@ import ManualAttendance from './pages/ManualAttendance'
 import IDCard from './pages/IDCard'
 import AttendanceRecap from './pages/AttendanceRecap'
 import GallerySection from './features/gallery/GallerySection'
+import Events from './pages/Events'
+import EventDetail from './pages/EventDetail'
 
 function AuthGuard() {
   const { user, loading } = useAuthStore()
@@ -62,6 +65,7 @@ function AppInitializer({ children }) {
 const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
   { path: '/scan', element: <Scan /> },
+  { path: '/scan-event/:eventId', element: <EventScan /> },
   {
     path: '/',
     element: <AuthGuard />,
@@ -81,6 +85,8 @@ const router = createBrowserRouter([
           { path: 'attendance/manual', element: <ManualAttendance /> },
           { path: 'id-card', element: <IDCard /> },
           { path: 'attendance/recap', element: <AttendanceRecap /> },
+          { path: 'events', element: <Events /> },
+          { path: 'events/:eventId', element: <EventDetail /> },
           { path: 'gallery', element: <GallerySection /> },
         ],
       },
