@@ -2,6 +2,21 @@
 
 Format: `[Tanggal] Versi / Sesi — Deskripsi`
 
+## [2026-08-04] Modul Absensi Event Belajar Malam
+
+### ✨ Fitur Baru: Manajemen & Absensi Event
+- **Sistem Event Independen:** Pembuatan sistem absensi terpisah khusus untuk event (seperti Belajar Malam/Tryout) yang tidak mengganggu absensi utama karyawan & murid.
+- **Tabel Database Baru:** `events`, `event_participants`, dan `event_attendance`. User menggunakan identitas yang sudah ada di tabel `users`.
+- **Manajemen Partisipan:** Admin dapat menambahkan/mengurangi peserta (`UserDetail.jsx` / `EventDetail.jsx`).
+- **Scanner Khusus Event:** UI scanner QR khusus event di `/scan-event/:id`, dipisahkan logikanya dari scanner utama agar tidak bertabrakan dengan jadwal reguler.
+- **Keterangan Tidak Hadir:** Admin dapat melihat daftar peserta yang *Belum Hadir* dan mengklik tombol "Set Status" untuk memberikan status Izin, Sakit, atau Alfa secara manual (lengkap dengan teks keterangan/catatan).
+- **Integrasi Bot WhatsApp & Laporan Harian (Cron):**
+  - Command `.cekevent <kata_kunci>` untuk menarik rekap.
+  - Laporan memisahkan list Hadir, Izin/Sakit (plus alasannya), dan Belum Hadir.
+  - Pengiriman otomatis untuk event yang berstatus *Active* setiap hari.
+
+---
+
 ## [2026-07-23] Ekspor Massal Absensi Staff
 
 ### ✨ Fitur Baru: Ekspor Massal Absensi Staff (Semua Role Staff)

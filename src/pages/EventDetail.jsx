@@ -5,7 +5,6 @@ import { supabase } from '../lib/supabase'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog'
-import { Textarea } from '../components/ui/textarea'
 import { Spinner } from '../components/ui/spinner'
 import { useToast } from '../components/ui/toast'
 import { Input } from '../components/ui/input'
@@ -392,12 +391,13 @@ export default function EventDetail() {
                             </div>
                             <div className="space-y-2">
                                 <Label>Keterangan (Opsional)</Label>
-                                <Textarea
+                                <textarea
+                                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                     placeholder="Alasan tidak hadir..."
                                     value={manualNotes}
                                     onChange={e => setManualNotes(e.target.value)}
                                     rows={3}
-                                />
+                                ></textarea>
                             </div>
                         </div>
                         <DialogFooter>
