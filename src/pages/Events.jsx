@@ -181,7 +181,7 @@ export default function Events() {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Tanggal Mulai</Label>
+                                    <Label>Tanggal Mulai (Opsional)</Label>
                                     <Input
                                         type="date"
                                         value={form.start_date}
@@ -189,7 +189,7 @@ export default function Events() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Tanggal Selesai</Label>
+                                    <Label>Tanggal Selesai (Opsional)</Label>
                                     <Input
                                         type="date"
                                         value={form.end_date}

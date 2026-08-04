@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, UserPlus, Trash2, CalendarDays, ExternalLink, QrCode } from 'lucide-react'
+import { ArrowLeft, UserPlus, Trash2, CalendarDays, ExternalLink, QrCode, Plus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
