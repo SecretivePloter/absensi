@@ -4,7 +4,8 @@ import { ArrowLeft, UserPlus, Trash2, CalendarDays, ExternalLink, QrCode, Plus }
 import { supabase } from '../lib/supabase'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog'
+import { Textarea } from '../components/ui/textarea'
 import { Spinner } from '../components/ui/spinner'
 import { useToast } from '../components/ui/toast'
 import { Input } from '../components/ui/input'
@@ -29,6 +30,14 @@ export default function EventDetail() {
 
     // Attendance state
     const [attendance, setAttendance] = useState([])
+    const [attendanceDate, setAttendanceDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+
+    // Manual Status Modal
+    const [statusModalOpen, setStatusModalOpen] = useState(false)
+    const [selectedParticipant, setSelectedParticipant] = useState(null)
+    const [manualStatus, setManualStatus] = useState('izin')
+    const [manualNotes, setManualNotes] = useState('')
+    const [savingStatus, setSavingStatus] = useState(false)
 
     const fetchEventData = useCallback(async () => {
         setLoading(true)
@@ -49,19 +58,17 @@ export default function EventDetail() {
             const { data: att } = await supabase
                 .from('event_attendance')
                 .select(`
-                    id, check_in_at, date, event_participant_id, 
-                    event_participants(user_id, users(name, role))
+                    id, check_in_at, date, status, notes, event_participant_id
                 `)
                 .in('event_participant_id', partIds)
-                .order('date', { ascending: false })
-                .order('check_in_at', { ascending: false })
+                .eq('date', attendanceDate)
             setAttendance(att || [])
         } else if (activeTab === 'attendance') {
             setAttendance([])
         }
 
         setLoading(false)
-    }, [eventId, activeTab])
+    }, [eventId, activeTab, attendanceDate])
 
     useEffect(() => { fetchEventData() }, [fetchEventData])
 
@@ -100,6 +107,54 @@ export default function EventDetail() {
             fetchEventData()
         } catch (err) {
             toast({ title: 'Gagal menghapus', description: err.message, variant: 'error' })
+        }
+    }
+
+    const openManualStatus = (p) => {
+        setSelectedParticipant(p)
+        const existingAtt = attendance.find(a => a.event_participant_id === p.id)
+        if (existingAtt) {
+            setManualStatus(existingAtt.status || 'izin')
+            setManualNotes(existingAtt.notes || '')
+        } else {
+            setManualStatus('izin')
+            setManualNotes('')
+        }
+        setStatusModalOpen(true)
+    }
+
+    const handleSaveManualStatus = async (e) => {
+        e.preventDefault()
+        setSavingStatus(true)
+        try {
+            const existingAtt = attendance.find(a => a.event_participant_id === selectedParticipant.id)
+            const payload = {
+                event_participant_id: selectedParticipant.id,
+                date: attendanceDate,
+                status: manualStatus,
+                notes: manualNotes,
+                check_in_at: manualStatus === 'hadir' ? (existingAtt?.check_in_at || new Date().toISOString()) : null
+            }
+
+            let error;
+            if (existingAtt) {
+                const res = await supabase.from('event_attendance').update(payload).eq('id', existingAtt.id)
+                error = res.error
+            } else {
+                const res = await supabase.from('event_attendance').insert(payload)
+                error = res.error
+            }
+
+            if (error) throw error
+            toast({ title: 'Berhasil', description: 'Status kehadiran diperbarui', variant: 'success' })
+            setStatusModalOpen(false)
+            fetchEventData()
+        } catch (err) {
+            toast({ title: 'Gagal', description: err.message, variant: 'error' })
+        } finally {
+            setSavingStatus(true)
+            setStatusModalOpen(false)
+            setTimeout(() => setSavingStatus(false), 500)
         }
     }
 
@@ -197,37 +252,69 @@ export default function EventDetail() {
 
             {activeTab === 'attendance' && (
                 <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-lg font-semibold">Total Kehadiran: {attendance.length}</h2>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <Label className="whitespace-nowrap">Tanggal:</Label>
+                            <Input
+                                type="date"
+                                value={attendanceDate}
+                                onChange={e => setAttendanceDate(e.target.value)}
+                                className="w-auto"
+                            />
+                        </div>
+                        <div className="flex gap-4 text-sm font-medium">
+                            <span className="text-green-500">Hadir: {attendance.filter(a => a.status === 'hadir').length}</span>
+                            <span className="text-yellow-500">Izin/Sakit: {attendance.filter(a => a.status !== 'hadir').length}</span>
+                            <span className="text-red-500">Belum Hadir: {participants.length - attendance.length}</span>
+                        </div>
                     </div>
                     <div className="bg-card border rounded-md overflow-hidden">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-muted/50 text-xs font-semibold uppercase text-muted-foreground">
                                 <tr>
-                                    <th className="px-4 py-3">Tanggal</th>
                                     <th className="px-4 py-3">Nama</th>
-                                    <th className="px-4 py-3">Role</th>
+                                    <th className="px-4 py-3">Status</th>
                                     <th className="px-4 py-3">Waktu Masuk</th>
+                                    <th className="px-4 py-3">Keterangan</th>
+                                    <th className="px-4 py-3 text-right">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                                {attendance.map(att => {
-                                    const u = att.event_participants?.users
+                                {participants.map(p => {
+                                    const att = attendance.find(a => a.event_participant_id === p.id)
+                                    const u = p.users
+                                    const isHadir = att?.status === 'hadir'
+                                    const isIzin = att && !isHadir
+                                    const isBelum = !att
                                     return (
-                                        <tr key={att.id} className="hover:bg-muted/30">
-                                            <td className="px-4 py-3 whitespace-nowrap">{format(new Date(att.date), 'dd MMM yyyy', { locale: idLocale })}</td>
-                                            <td className="px-4 py-3 font-medium">{u?.name || '-'}</td>
-                                            <td className="px-4 py-3 text-muted-foreground">{u?.role || '-'}</td>
+                                        <tr key={p.id} className="hover:bg-muted/30">
+                                            <td className="px-4 py-3 font-medium">
+                                                {u?.name || '-'}
+                                                <div className="text-xs text-muted-foreground font-normal">{u?.role || '-'}</div>
+                                            </td>
                                             <td className="px-4 py-3">
-                                                {att.check_in_at ? format(new Date(att.check_in_at), 'HH:mm:ss') : '-'}
+                                                {isHadir && <span className="bg-green-500/10 text-green-500 px-2 py-0.5 rounded text-xs">Hadir</span>}
+                                                {isIzin && <span className="bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded text-xs capitalize">{att.status}</span>}
+                                                {isBelum && <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded text-xs">Belum Hadir</span>}
+                                            </td>
+                                            <td className="px-4 py-3 text-muted-foreground">
+                                                {isHadir && att.check_in_at ? format(new Date(att.check_in_at), 'HH:mm:ss') : '-'}
+                                            </td>
+                                            <td className="px-4 py-3 text-muted-foreground">
+                                                {att?.notes || '-'}
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <Button size="sm" variant="ghost" onClick={() => openManualStatus(p)}>
+                                                    Set Status
+                                                </Button>
                                             </td>
                                         </tr>
                                     )
                                 })}
-                                {attendance.length === 0 && (
+                                {participants.length === 0 && (
                                     <tr>
-                                        <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
-                                            Belum ada data kehadiran pada event ini.
+                                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                                            Belum ada peserta yang didaftarkan pada event ini.
                                         </td>
                                     </tr>
                                 )}
@@ -275,6 +362,52 @@ export default function EventDetail() {
                             )}
                         </div>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Set Status Manual Dialog */}
+            <Dialog open={statusModalOpen} onClose={() => setStatusModalOpen(false)}>
+                <DialogContent onClose={() => setStatusModalOpen(false)} className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Set Status Kehadiran</DialogTitle>
+                        <DialogDescription>
+                            Peserta: <strong>{selectedParticipant?.users?.name}</strong><br />
+                            Tanggal: {format(new Date(attendanceDate), 'd MMM yyyy', { locale: idLocale })}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSaveManualStatus}>
+                        <div className="p-6 pt-2 space-y-4">
+                            <div className="space-y-2">
+                                <Label>Status</Label>
+                                <select
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                                    value={manualStatus}
+                                    onChange={e => setManualStatus(e.target.value)}
+                                >
+                                    <option value="hadir">Hadir</option>
+                                    <option value="izin">Izin</option>
+                                    <option value="sakit">Sakit</option>
+                                    <option value="alfa">Alfa</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Keterangan (Opsional)</Label>
+                                <Textarea
+                                    placeholder="Alasan tidak hadir..."
+                                    value={manualNotes}
+                                    onChange={e => setManualNotes(e.target.value)}
+                                    rows={3}
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setStatusModalOpen(false)}>Batal</Button>
+                            <Button type="submit" disabled={savingStatus}>
+                                {savingStatus ? <Spinner size="sm" className="mr-2" /> : null}
+                                Simpan
+                            </Button>
+                        </DialogFooter>
+                    </form>
                 </DialogContent>
             </Dialog>
         </div>
