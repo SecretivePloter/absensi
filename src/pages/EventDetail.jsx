@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Spinner } from '../components/ui/spinner'
 import { useToast } from '../components/ui/toast'
 import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
 import { format } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
 
