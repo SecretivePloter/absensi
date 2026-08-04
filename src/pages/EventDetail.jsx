@@ -4,7 +4,7 @@ import { ArrowLeft, UserPlus, Trash2, CalendarDays, ExternalLink, QrCode, Plus }
 import { supabase } from '../lib/supabase'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog'
 import { Spinner } from '../components/ui/spinner'
 import { useToast } from '../components/ui/toast'
 import { Input } from '../components/ui/input'
@@ -369,10 +369,10 @@ export default function EventDetail() {
                 <DialogContent onClose={() => setStatusModalOpen(false)} className="max-w-sm">
                     <DialogHeader>
                         <DialogTitle>Set Status Kehadiran</DialogTitle>
-                        <DialogDescription>
+                        <p className="text-sm text-muted-foreground mt-2">
                             Peserta: <strong>{selectedParticipant?.users?.name}</strong><br />
                             Tanggal: {format(new Date(attendanceDate), 'd MMM yyyy', { locale: idLocale })}
-                        </DialogDescription>
+                        </p>
                     </DialogHeader>
                     <form onSubmit={handleSaveManualStatus}>
                         <div className="p-6 pt-2 space-y-4">
