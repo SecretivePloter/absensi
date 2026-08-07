@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generator Sertifikat – Ichikara</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Barlow+Semi+Condensed:ital,wght@0,400;0,700;1,400&family=Libre+Bodoni:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f3f4f6;
+      color: #111827;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: #1e1b4b;
+      color: #e0e7ff;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    }
+    .header h1 { font-size: 16px; font-weight: 600; letter-spacing: .01em; }
+
+    /* ── Layout ── */
+    .layout { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Form panel ── */
+    .form-panel {
+      width: 340px;
+      min-width: 340px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+    .form-scroll { flex: 1; overflow-y: auto; padding: 18px; }
+    .form-actions { padding: 14px 18px; border-top: 1px solid #e5e7eb; background: #fafafa; }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #6366f1;
+      margin: 18px 0 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .section-title:first-child { margin-top: 0; }
+
+    /* ── Field ── */
+    .field { margin-bottom: 11px; }
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 3px;
+    }
+    .field input,
+    .field select {
+      width: 100%;
+      padding: 7px 9px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #111;
+      background: #fff;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .field input:focus,
+    .field select:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 2px rgba(99,102,241,.18);
+    }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* ── Photo upload ── */
+    .photo-drop {
+      border: 2px dashed #d1d5db;
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+    .photo-drop:hover,
+    .photo-drop.dragover { border-color: #6366f1; background: #eef2ff; }
+    .photo-drop input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+    .photo-drop-icon { color: #9ca3af; }
+    .photo-drop-label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 6px;
+    }
+    .photo-drop-sub {
+      font-size: 11px;
+      color: #d1d5db;
+      margin-top: 2px;
+    }
+    .photo-thumb {
+      width: 72px;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #e5e7eb;
+      margin: 8px auto 0;
+      display: none;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 9px 16px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background .15s, opacity .15s;
+    }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: #4f46e5; color: #fff; width: 100%; }
+    .btn-primary:hover:not(:disabled) { background: #4338ca; }
+    .btn-success { background: #059669; color: #fff; padding: 8px 14px; font-size: 12px; }
+    .btn-success:hover:not(:disabled) { background: #047857; }
+
+    /* ── Preview panel ── */
+    .preview-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: #f3f4f6;
+    }
+    .preview-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .preview-top h2 { font-size: 15px; font-weight: 600; color: #374151; }
+
+    .page-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
+    .svg-card {
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.1);
+      overflow: hidden;
+      margin-bottom: 22px;
+    }
+    .svg-card svg { display: block; width: 100%; height: auto; }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      color: #9ca3af;
+      text-align: center;
+      gap: 12px;
+    }
+    .empty-state p { font-size: 14px; }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .5s linear infinite;
+    }
+    .spinner-dark {
+      border-color: rgba(79,70,229,.3);
+      border-top-color: #4f46e5;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 9999;
+      animation: toastIn .25s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,.2);
+    }
+    .toast-ok  { background: #059669; }
+    .toast-err { background: #dc2626; }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+  </svg>
+  <h1>Generator Sertifikat – Ichikara</h1>
+</div>
+
+<div class="layout">
+
+  <!-- ── Form Panel ── -->
+  <div class="form-panel">
+    <div class="form-scroll">
+
+      <div class="section-title">Data Peserta</div>
+
+      <div class="field">
+        <label>Nama Peserta <span style="color:#dc2626">*</span></label>
+        <input id="f-nama" type="text" placeholder="Nama lengkap">
+      </div>
+      <div class="field">
+        <label>Nomor Sertifikat</label>
+        <input id="f-nomor" type="text" placeholder="contoh: ICH-2026-001">
+      </div>
+      <div class="field">
+        <label>Tanggal Lahir</label>
+        <input id="f-lahir" type="date">
+      </div>
+      <div class="field">
+        <label>Level Bahasa Jepang</label>
+        <select id="f-level">
+          <option value="">— Pilih level —</option>
+          <option>N1</option><option>N2</option><option>N3</option>
+          <option>N4</option><option>N5</option>
+          <option>Beginner</option><option>Elementary</option><option>Intermediate</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Predikat</label>
+        <select id="f-predikat">
+          <option value="">— Pilih predikat —</option>
+          <option value="Amat Baik">Amat Baik</option>
+          <option value="Baik">Baik</option>
+          <option value="Cukup">Cukup</option>
+          <option value="Kurang">Kurang</option>
+        </select>
+      </div>
+
+      <div class="section-title">Kursus</div>
+
+      <div class="field">
+        <label>Lama Waktu Belajar</label>
+        <input id="f-lama" type="text" placeholder="contoh: 3 Bulan">
+      </div>
+      <div class="field">
+        <label>Hasil Kelulusan</label>
+        <select id="f-lulus">
+          <option value="">— Pilih —</option>
+          <option value="LULUS">Lulus</option>
+          <option value="TIDAK LULUS">Tidak Lulus</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Tanggal Selesai Kursus</label>
+        <input id="f-selesai" type="date">
+      </div>
+      <div class="field">
+        <label>Tanggal Terbit Sertifikat</label>
+        <input id="f-terbit" type="date">
+      </div>
+
+      <div class="section-title">Nilai (maks. 25 per kategori)</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Tata Bahasa (文法)</label>
+          <input id="f-n1" type="text" placeholder="–">
+        </div>
+        <div class="field">
+          <label>Membaca (読解)</label>
+          <input id="f-n2" type="text" placeholder="–">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Percakapan (会話)</label>
+          <input id="f-n3" type="text" placeholder="–">
+        </div>
+        <div class="field">
+          <label>Kehadiran (出席率)</label>
+          <input id="f-n4" type="text" placeholder="–">
+        </div>
+      </div>
+      <div class="field">
+        <label>Nilai 5</label>
+        <input id="f-n5" type="text" placeholder="–">
+      </div>
+
+      <div class="section-title">Foto Peserta</div>
+
+      <div class="photo-drop" id="photoDrop">
+        <input type="file" id="photoInput" accept="image/*">
+        <svg class="photo-drop-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+        </svg>
+        <div class="photo-drop-label" id="photoLabel">Klik atau seret foto peserta</div>
+        <div class="photo-drop-sub">JPG/PNG – otomatis dipotong ke rasio frame</div>
+        <img id="photoThumb" class="photo-thumb" alt="preview">
+      </div>
+
+    </div><!-- /form-scroll -->
+
+    <div class="form-actions">
+      <button class="btn btn-primary" id="generateBtn" onclick="generatePreview()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+        Generate Preview
+      </button>
+      <button type="button" onclick="fillTestData()" style="margin-top:8px;width:100%;padding:7px;border:1px dashed #a5b4fc;border-radius:6px;background:transparent;color:#818cf8;font-size:12px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(99,102,241,.08)'" onmouseout="this.style.background='transparent'">
+        ⚡ Isi Data Contoh (Testing)
+      </button>
+    </div>
+  </div><!-- /form-panel -->
+
+  <!-- ── Preview Panel ── -->
+  <div class="preview-panel">
+    <div class="preview-top">
+      <h2>Preview Sertifikat</h2>
+      <button class="btn btn-success" id="downloadBtn" onclick="downloadPDF()" disabled>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Download PDF
+      </button>
+    </div>
+
+    <div id="previewContent">
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1" stroke-linecap="round">
+          <rect x="5" y="2" width="14" height="20" rx="2"/>
+          <path d="M9 7h6M9 11h6M9 15h4"/>
+        </svg>
+        <p>Isi form lalu klik <strong>Generate Preview</strong></p>
+      </div>
+    </div>
+  </div><!-- /preview-panel -->
+
+</div><!-- /layout -->
+
+<script>
+// ─────────────────────────────────────────────────────────
+// Config
+// ─────────────────────────────────────────────────────────
+const FRONT_SVG = 'front.svg'
+const BACK_SVG  = 'back.svg'
+// Photo frame dimensions in SVG viewBox units (from template)
+const PHOTO_W = 1600.96
+const PHOTO_H = 2001.59
+const PHOTO_RATIO = PHOTO_W / PHOTO_H  // ≈ 0.8 portrait
+
+let photoDataURL = null
+
+// ─────────────────────────────────────────────────────────
+// Indonesian date formatter
+// ─────────────────────────────────────────────────────────
+const BULAN = ['Januari','Februari','Maret','April','Mei','Juni',
+               'Juli','Agustus','September','Oktober','November','Desember']
+
+function fmtDate(iso) {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-').map(Number)
+  return `${d} ${BULAN[m - 1]} ${y}`
+}
+
+function fillTestData() {
+  document.getElementById('f-nama').value    = 'Kresna Wirawan'
+  document.getElementById('f-nomor').value   = 'ICH-2026-001'
+  document.getElementById('f-lahir').value   = '2000-06-04'
+  document.getElementById('f-level').value   = 'N5'
+  document.getElementById('f-predikat').value= 'Amat Baik'
+  document.getElementById('f-lama').value    = '6 Bulan'
+  document.getElementById('f-lulus').value   = 'LULUS'
+  document.getElementById('f-selesai').value = '2026-06-20'
+  document.getElementById('f-terbit').value  = '2026-06-25'
+  document.getElementById('f-n1').value      = '22'
+  document.getElementById('f-n2').value      = '20'
+  document.getElementById('f-n3').value      = '23'
+  document.getElementById('f-n4').value      = '24'
+  document.getElementById('f-n5').value      = '21'
+}
+
+// ─────────────────────────────────────────────────────────
+// Photo upload + center-crop
+// ─────────────────────────────────────────────────────────
+document.getElementById('photoInput').addEventListener('change', e => {
+  const f = e.target.files[0]
+  if (f) cropAndStore(f)
+})
+
+const drop = document.getElementById('photoDrop')
+drop.addEventListener('dragover',  e => { e.preventDefault(); drop.classList.add('dragover') })
+drop.addEventListener('dragleave', ()  => drop.classList.remove('dragover'))
+drop.addEventListener('drop', e => {
+  e.preventDefault()
+  drop.classList.remove('dragover')
+  const f = e.dataTransfer.files[0]
+  if (f && f.type.startsWith('image/')) cropAndStore(f)
+})
+
+function cropAndStore(file) {
+  const reader = new FileReader()
+  reader.onload = ev => {
+    const img = new Image()
+    img.onload = () => {
+      const OUT_W = 960, OUT_H = Math.round(OUT_W / PHOTO_RATIO)
+      const canvas = document.createElement('canvas')
+      canvas.width = OUT_W
+      canvas.height = OUT_H
+      const ctx = canvas.getContext('2d')
+
+      // Center crop to target aspect ratio
+      const imgR = img.width / img.height
+      let sx = 0, sy = 0, sw = img.width, sh = img.height
+      if (imgR > PHOTO_RATIO) {
+        sw = img.height * PHOTO_RATIO
+        sx = (img.width - sw) / 2
+      } else {
+        sh = img.width / PHOTO_RATIO
+        sy = (img.height - sh) / 2
+      }
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, OUT_W, OUT_H)
+      photoDataURL = canvas.toDataURL('image/jpeg', 0.92)
+
+      const thumb = document.getElementById('photoThumb')
+      thumb.src = photoDataURL
+      thumb.style.display = 'block'
+      document.getElementById('photoLabel').textContent = 'Foto dimuat ✓'
+    }
+    img.src = ev.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
+// ─────────────────────────────────────────────────────────
+// SVG pre-processor: fix CorelDRAW split-placeholder artifacts
+// ─────────────────────────────────────────────────────────
+function preProcessSVG(svgText) {
+  // Fix 2 runs FIRST — 3-part out-of-visual-order split for "{{ Amat Baik }}":
+  // File order: "{{ A" → " }}" → "mat Baik"  (visual order by x: "{{ A" → "mat Baik" → " }}")
+  // Must run before Fix 1 or Fix 1 will consume the {{ A → }} pair prematurely.
+  svgText = svgText.replace(
+    /\{\{ A<\/text>(\s*<text\b[^>]*>) \}\}<\/text>(\s*<text\b[^>]*>)mat Baik(<\/text>)/,
+    `{{ Amat Baik }}</text>$1</text>$2$3`
+  )
+
+  // Fix 1 runs SECOND — general 2-part split: "{{ " ends one <text>, "PLACEHOLDER }}" starts next.
+  // Move {{ from first element into second, leaving first empty.
+  svgText = svgText.replace(
+    /\{\{([^<}]*)<\/text>(\s*<text\b[^>]*>)\s*([^<}]*\}\})/g,
+    (_, part1, tag2, part2) => `</text>${tag2}{{${part1}${part2}`
+  )
+
+  return svgText
+}
+
+// ─────────────────────────────────────────────────────────
+// SVG processing helpers
+// ─────────────────────────────────────────────────────────
+async function fetchSVG(url) {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Gagal memuat ${url} (${res.status})`)
+  return res.text()
+}
+
+function parseSVG(text) {
+  return new DOMParser().parseFromString(text, 'image/svg+xml')
+}
+
+/**
+ * Override deprecated SVG @font-face src with Google Fonts names.
+ * Also remap "Barlow Condensed SemiBold/Medium" → "Barlow Condensed"
+ * so the Google Fonts loaded in <head> take effect.
+ */
+function patchFonts(svgDoc) {
+  const style = svgDoc.querySelector('style')
+  if (!style) return
+  let css = style.textContent
+  css = css.replace(/font-family:'Barlow Condensed SemiBold'/g, "font-family:'Barlow Condensed'")
+  css = css.replace(/font-family:'Barlow Condensed Medium'/g,   "font-family:'Barlow Condensed'")
+  style.textContent = css
+}
+
+/**
+ * Hide the いちから watermark tile group entirely.
+ * CorelDRAW structure: g[id^="_"] > rect (bg) + g (watermark tiles) + ...content...
+ * We verify by checking the second child <g> contains いちから text before hiding.
+ */
+function hideWatermarks(svgDoc) {
+  const mainG = svgDoc.querySelector('g[id^="_"]')
+  if (!mainG) return
+  const secondChild = mainG.children[1]
+  if (!secondChild || secondChild.tagName.toLowerCase() !== 'g') return
+  const sample = secondChild.querySelector('text')
+  if (sample && sample.textContent.includes('いちから')) {
+    secondChild.setAttribute('display', 'none')
+  }
+}
+
+/**
+ * Fix xlink:href on all <image> elements AND pre-fetch each image as a
+ * base64 data URL so the SVG becomes fully self-contained.
+ * Self-contained SVGs render correctly when serialized to a Blob URL
+ * (used by the canvas-based PDF renderer below).
+ */
+async function patchImagePaths(svgDoc, imgFolder, filenamePrefix) {
+  const NS = 'http://www.w3.org/1999/xlink'
+  const prefixRe = filenamePrefix
+    ? new RegExp('^' + filenamePrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    : null
+
+  const tasks = []
+  svgDoc.querySelectorAll('image').forEach(el => {
+    const href = el.getAttributeNS(NS, 'href') ||
+                 el.getAttribute('xlink:href') ||
+                 el.getAttribute('href') || ''
+    if (href.startsWith('data:')) return
+
+    let filename = href.replace(/\\/g, '/').split('/').pop()
+    if (prefixRe) filename = filename.replace(prefixRe, '')
+    const relPath = imgFolder + filename
+
+    tasks.push(
+      fetch(relPath)
+        .then(r => r.blob())
+        .then(blob => new Promise(resolve => {
+          const reader = new FileReader()
+          reader.onload = e => {
+            el.setAttributeNS(NS, 'xlink:href', e.target.result)
+            el.setAttribute('href', e.target.result)
+            resolve()
+          }
+          reader.readAsDataURL(blob)
+        }))
+        .catch(() => {
+          // fallback: at least fix the path so the browser can try
+          el.setAttributeNS(NS, 'xlink:href', relPath)
+          el.setAttribute('href', relPath)
+        })
+    )
+  })
+
+  await Promise.all(tasks)
+}
+
+/**
+ * Replace {{ placeholder }} text nodes inside <text> elements.
+ * key is a literal string; value is the replacement text.
+ */
+function replacePlaceholders(svgDoc, map) {
+  const SVG_NS = 'http://www.w3.org/2000/svg'
+  const textEls = svgDoc.getElementsByTagNameNS(SVG_NS, 'text')
+
+  for (const el of textEls) {
+    // Skip anything inside <defs>
+    if (el.closest('defs')) continue
+
+    for (const [key, value] of Object.entries(map)) {
+      // Build regex that tolerates spaces around the key
+      const escaped = key.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&')
+      const re = new RegExp(`\\{\\{\\s*${escaped}\\s*\\}\\}`, 'gi')
+
+      // Check both direct text content and any tspan children
+      const nodes = []
+      el.childNodes.forEach(n => { if (n.nodeType === 3) nodes.push(n) })
+      el.querySelectorAll('tspan').forEach(t =>
+        t.childNodes.forEach(n => { if (n.nodeType === 3) nodes.push(n) })
+      )
+      nodes.forEach(n => {
+        if (re.test(n.textContent)) {
+          n.textContent = n.textContent.replace(re, value)
+        }
+      })
+    }
+  }
+}
+
+/** Replace the peserta photo in the front SVG */
+function injectPhoto(svgDoc, dataURL) {
+  if (!dataURL) return
+  const NS = 'http://www.w3.org/1999/xlink'
+  // Find by ImgID3 path (the placeholder photo)
+  let target = null
+  svgDoc.querySelectorAll('image').forEach(el => {
+    const href = el.getAttributeNS(NS, 'href') ||
+                 el.getAttribute('xlink:href') ||
+                 el.getAttribute('href') || ''
+    if (href.includes('ImgID3')) target = el
+  })
+  if (target) {
+    target.setAttributeNS(NS, 'xlink:href', dataURL)
+    target.setAttribute('href', dataURL)
+  }
+}
+
+/** Assign sequential adj-id to every <text> and <image> element */
+function assignAdjIds(svgDoc) {
+  let n = 0
+  svgDoc.querySelectorAll('text, image').forEach(el => el.setAttribute('adj-id', n++))
+}
+
+/**
+ * Read saved adjustments from localStorage (written by adjust.html) and
+ * apply translate+scale transforms to matching elements.
+ * Must be called AFTER the SVG is appended to the live DOM (getBBox needs layout).
+ */
+function applyStoredAdjustments(svgEl, page) {
+  try {
+    const stored = JSON.parse(localStorage.getItem('ich_adj') || 'null')
+    if (!stored || !stored[page]) return
+    Object.entries(stored[page]).forEach(([adjId, adj]) => {
+      const el = svgEl.querySelector(`[adj-id="${adjId}"]`)
+      if (!el) return
+      const b  = el.getBBox()
+      const cx = b.x + b.width  / 2
+      const cy = b.y + b.height / 2
+      const tx = (adj.dx + cx * (1 - adj.scale)).toFixed(2)
+      const ty = (adj.dy + cy * (1 - adj.scale)).toFixed(2)
+      const adj_tr  = `translate(${tx},${ty}) scale(${adj.scale})`
+      const orig_tr = el.getAttribute('transform') || ''
+      el.setAttribute('transform', orig_tr ? `${adj_tr} ${orig_tr}` : adj_tr)
+    })
+  } catch {}
+}
+
+/** Import the SVG element into the main document for DOM rendering */
+function importSVG(svgDoc) {
+  const el = document.importNode(svgDoc.documentElement, true)
+  // Allow CSS width override so the card stretches to 100%
+  el.removeAttribute('width')
+  el.removeAttribute('height')
+  el.style.width  = '100%'
+  el.style.height = 'auto'
+  return el
+}
+
+// ─────────────────────────────────────────────────────────
+// Generate Preview
+// ─────────────────────────────────────────────────────────
+async function generatePreview() {
+  const nama = document.getElementById('f-nama').value.trim()
+  if (!nama) { toast('Nama peserta wajib diisi', 'err'); return }
+
+  const btn = document.getElementById('generateBtn')
+  btn.disabled = true
+  btn.innerHTML = '<div class="spinner"></div> Memuat...'
+
+  try {
+    await document.fonts.ready   // ensure Google Fonts are loaded
+
+    const data = {
+      nama:      nama,
+      nomor:     document.getElementById('f-nomor').value.trim(),
+      lahir:     fmtDate(document.getElementById('f-lahir').value),
+      level:     document.getElementById('f-level').value,
+      lama:      document.getElementById('f-lama').value.trim(),
+      lulus:     document.getElementById('f-lulus').value,
+      selesai:   fmtDate(document.getElementById('f-selesai').value),
+      terbit:    fmtDate(document.getElementById('f-terbit').value),
+      predikat:  document.getElementById('f-predikat').value,
+      n1:        document.getElementById('f-n1').value.trim(),
+      n2:        document.getElementById('f-n2').value.trim(),
+      n3:        document.getElementById('f-n3').value.trim(),
+      n4:        document.getElementById('f-n4').value.trim(),
+      n5:        document.getElementById('f-n5').value.trim(),
+    }
+
+    const [frontText, backText] = await Promise.all([
+      fetchSVG(FRONT_SVG),
+      fetchSVG(BACK_SVG),
+    ])
+
+    const frontDoc = parseSVG(preProcessSVG(frontText))
+    const backDoc  = parseSVG(preProcessSVG(backText))
+
+    // Patch fonts & image paths (patchImagePaths is async — pre-fetches images as data URLs)
+    patchFonts(frontDoc)
+    patchFonts(backDoc)
+    hideWatermarks(frontDoc)
+    hideWatermarks(backDoc)
+    await patchImagePaths(frontDoc, 'front_images/', 'Backup_of_1. Bani_')
+    await patchImagePaths(backDoc,  'back_images/',  'Belakang_')
+
+    // Assign sequential adj-ids so adjust.html adjustments can be matched
+    assignAdjIds(frontDoc)
+    assignAdjIds(backDoc)
+
+    // Replace placeholders – front page
+    replacePlaceholders(frontDoc, {
+      'NAMA PESERTA':              data.nama,
+      'Nomor Sertifikat 2':        data.nomor,
+      'Nomor Sertifikat 1':        data.nomor,
+      'Tanggal Lahir Peserta':     data.lahir,
+      'Level Bahasa Jepang':       data.level,
+      'Amat Baik':                 data.predikat,
+      'lama Waktu Belajar':        data.lama,
+      'lulus/ tidak lulus':        data.lulus,
+      'Tanggal Selesai Kursus':    data.selesai,
+      'Tanggal terbit Sertifikat': data.terbit,
+    })
+
+    // Replace placeholders – back page
+    replacePlaceholders(backDoc, {
+      'NAMA':                    data.nama,
+      'Tanggal terbit sertifikat': data.terbit,
+      'lulus/tidak':             data.lulus,
+      'nilai1':                  data.n1,
+      'nilai2':                  data.n2,
+      'nilai3':                  data.n3,
+      'nilai4':                  data.n4,
+      'nilai5':                  data.n5,
+    })
+
+    // Inject peserta photo into front page
+    injectPhoto(frontDoc, photoDataURL)
+
+    // Render to DOM
+    const frontEl = importSVG(frontDoc)
+    const backEl  = importSVG(backDoc)
+
+    document.getElementById('previewContent').innerHTML = `
+      <div class="page-label">Halaman Depan</div>
+      <div class="svg-card" id="svgFront"></div>
+      <div class="page-label">Halaman Belakang</div>
+      <div class="svg-card" id="svgBack"></div>
+    `
+    document.getElementById('svgFront').appendChild(frontEl)
+    document.getElementById('svgBack').appendChild(backEl)
+
+    // Apply position/size adjustments saved from adjust.html
+    applyStoredAdjustments(frontEl, 'front')
+    applyStoredAdjustments(backEl,  'back')
+
+    // Stash nama for PDF filename
+    window.__pdfNama = data.nama
+
+    const dlBtn = document.getElementById('downloadBtn')
+    dlBtn.disabled = false
+
+    toast('Preview siap!', 'ok')
+
+  } catch (err) {
+    console.error(err)
+    toast('Error: ' + err.message, 'err')
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="1 4 1 10 7 10"/>
+        <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+      </svg>
+      Generate Preview`
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// Download PDF  (native SVG → canvas → jsPDF, A4 landscape)
+// Uses the browser's own SVG renderer — pixel-perfect, no html2canvas.
+// Requires the SVG to be self-contained (images as data URLs), which
+// patchImagePaths now guarantees.
+// ─────────────────────────────────────────────────────────
+async function svgToCanvas(svgEl, W, H) {
+  const ser = new XMLSerializer()
+  const svgStr = ser.serializeToString(svgEl)
+  const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' })
+  const url  = URL.createObjectURL(blob)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = W; canvas.height = H
+  const ctx = canvas.getContext('2d')
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, W, H)
+
+  await new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload  = () => { ctx.drawImage(img, 0, 0, W, H); resolve() }
+    img.onerror = () => reject(new Error('SVG render failed'))
+    img.src = url
+  })
+  URL.revokeObjectURL(url)
+  return canvas
+}
+
+async function downloadPDF() {
+  const dlBtn = document.getElementById('downloadBtn')
+  dlBtn.disabled = true
+  dlBtn.innerHTML = '<div class="spinner"></div> Memproses...'
+
+  try {
+    await document.fonts.ready
+
+    const { jsPDF } = window.jspdf
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+
+    // A4 landscape at 200 DPI — good quality for print/digital
+    const W = 2339, H = 1654
+
+    for (const [idx, cardId] of [['svgFront', 0], ['svgBack', 1]]) {
+      if (cardId > 0) pdf.addPage()
+      const svgEl = document.querySelector(`#${idx} svg`)
+      const canvas = await svgToCanvas(svgEl, W, H)
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 297, 210)
+    }
+
+    const safe = (window.__pdfNama || 'Sertifikat').replace(/[^\w\s-]/g, '_')
+    pdf.save(`Sertifikat_${safe}.pdf`)
+    toast('PDF berhasil diunduh!', 'ok')
+
+  } catch (err) {
+    console.error(err)
+    toast('Gagal buat PDF: ' + err.message, 'err')
+  } finally {
+    dlBtn.disabled = false
+    dlBtn.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+      </svg>
+      Download PDF`
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// Toast utility
+// ─────────────────────────────────────────────────────────
+function toast(msg, type = 'ok') {
+  const el = document.createElement('div')
+  el.className = `toast toast-${type}`
+  el.textContent = msg
+  document.body.appendChild(el)
+  setTimeout(() => el.remove(), 3000)
+}
+</script>
+</body>
+</html>

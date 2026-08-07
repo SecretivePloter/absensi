@@ -18,6 +18,7 @@ import AttendanceRecap from './pages/AttendanceRecap'
 import GallerySection from './features/gallery/GallerySection'
 import Events from './pages/Events'
 import EventDetail from './pages/EventDetail'
+import Sertifikat from './pages/Sertifikat'
 
 function AuthGuard() {
   const { user, loading } = useAuthStore()
@@ -88,6 +89,7 @@ const router = createBrowserRouter([
           { path: 'events', element: <Events /> },
           { path: 'events/:eventId', element: <EventDetail /> },
           { path: 'gallery', element: <GallerySection /> },
+          { path: 'sertifikat', element: <Sertifikat /> },
         ],
       },
     ],

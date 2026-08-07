@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Penyesuai Tata Letak Sertifikat – Ichikara</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Barlow+Semi+Condensed:ital,wght@0,400;0,700;1,400&family=Libre+Bodoni:ital,wght@0,400;0,700;1,400&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0b0d14;
+      --surface: #141826;
+      --surface2: #1c2136;
+      --border: #2a3260;
+      --text: #c8d0e8;
+      --text-dim: #6b7499;
+      --accent: #6e8efb;
+      --accent-bg: rgba(110, 142, 251, .12);
+      --green: #22c55e;
+      --red: #ef4444;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #e0e7ff;
+      white-space: nowrap;
+    }
+
+    .tab-btn {
+      padding: 5px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 12px;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .tab-btn:not(.active):hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .spacer {
+      flex: 1;
+    }
+
+    #status-msg {
+      font-size: 11px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+
+    .hdr-btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 12px;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+
+    .hdr-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .hdr-btn.save {
+      background: rgba(34, 197, 94, .12);
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .hdr-btn.save:hover {
+      background: rgba(34, 197, 94, .22);
+    }
+
+    /* ── Layout ── */
+    main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Preview ── */
+    #preview-area {
+      flex: 1;
+      overflow: auto;
+      background: #070810;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    #svg-wrapper {
+      position: relative;
+      display: inline-block;
+      cursor: crosshair;
+      user-select: none;
+    }
+
+    #svg-wrapper svg {
+      display: block;
+      width: 960px;
+      height: auto;
+    }
+
+    #loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(7, 8, 16, .85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--text-dim);
+      border-radius: 4px;
+      min-width: 200px;
+      min-height: 100px;
+    }
+
+    /* ── Control panel ── */
+    #panel {
+      width: 290px;
+      min-width: 290px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #panel-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 5px;
+      margin-bottom: 2px;
+    }
+
+    #hint-text {
+      color: var(--text-dim);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    #selected-label {
+      background: var(--accent-bg);
+      border: 1px solid rgba(110, 142, 251, .3);
+      border-radius: 6px;
+      padding: 7px 10px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 500;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+
+    /* ── Sliders ── */
+    .slider-block {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .slider-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .slider-top label {
+      font-size: 12px;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .num-input {
+      width: 68px;
+      padding: 3px 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text);
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .num-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+      height: 4px;
+    }
+
+    .slider-hints {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: -2px;
+    }
+
+    /* ── Buttons ── */
+    .panel-btn {
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 12px;
+      width: 100%;
+      transition: all .15s;
+      text-align: center;
+    }
+
+    .panel-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .panel-btn.danger:hover {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .panel-btn.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .panel-btn.primary:hover {
+      opacity: .85;
+    }
+
+    /* ── Adj list ── */
+    #adj-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .adj-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      background: var(--surface2);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background .1s, border-color .1s;
+    }
+
+    .adj-item:hover {
+      background: var(--accent-bg);
+    }
+
+    .adj-item.active {
+      background: var(--accent-bg);
+      border-color: rgba(110, 142, 251, .35);
+    }
+
+    .adj-item-label {
+      flex: 1;
+      font-size: 11px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .adj-item-vals {
+      font-size: 10px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+
+    .adj-del {
+      color: var(--text-dim);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .adj-del:hover {
+      color: var(--red);
+      background: rgba(239, 68, 68, .12);
+    }
+
+    .no-adj {
+      color: var(--text-dim);
+      font-size: 11px;
+      font-style: italic;
+    }
+
+    /* ── Panel bottom ── */
+    #panel-bottom {
+      padding: 12px 14px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      flex-shrink: 0;
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      z-index: 999;
+      animation: fadein .2s;
+    }
+
+    .toast-ok {
+      background: #14532d;
+      color: #d1fae5;
+      border: 1px solid #22c55e40;
+    }
+
+    .toast-err {
+      background: #7f1d1d;
+      color: #fee2e2;
+      border: 1px solid #ef444440;
+    }
+
+    @keyframes fadein {
+      from {
+        opacity: 0;
+        transform: translateY(6px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>Penyesuai Sertifikat</h1>
+
+    <div style="display:flex;gap:4px">
+      <button class="tab-btn active" id="tab-front" onclick="switchPage('front')">Halaman Depan</button>
+      <button class="tab-btn" id="tab-back" onclick="switchPage('back')">Halaman Belakang</button>
+    </div>
+
+    <span id="status-msg">Memuat…</span>
+    <div class="spacer"></div>
+
+    <button class="hdr-btn" onclick="reloadSVG()">↺ Muat Ulang</button>
+    <button class="hdr-btn" onclick="copyJSON()">{ } Salin JSON</button>
+    <button class="hdr-btn" onclick="importJSON()">⇪ Impor JSON</button>
+    <button class="hdr-btn save" onclick="saveAndApply()">✓ Simpan &amp; Terapkan</button>
+  </header>
+
+  <main>
+    <div id="preview-area">
+      <div id="svg-wrapper">
+        <div id="loading-overlay">Memuat SVG…</div>
+      </div>
+    </div>
+
+    <div id="panel">
+      <div id="panel-scroll">
+
+        <!-- Selected element -->
+        <div>
+          <div class="section-label">Elemen Terpilih</div>
+          <div id="hint-text">Klik elemen di preview untuk memilih, lalu geser slider untuk menyesuaikan posisi atau
+            ukurannya.</div>
+          <div id="selected-label" style="display:none"></div>
+        </div>
+
+        <!-- Sliders — hidden until selection -->
+        <div id="slider-section" style="display:none; flex-direction:column; gap:14px;">
+
+          <div class="slider-block">
+            <div class="slider-top">
+              <label>Geser X (kanan/kiri)</label>
+              <input class="num-input" type="number" id="num-dx" value="0" step="10"
+                onchange="onNumInput('dx', this.value)">
+            </div>
+            <input type="range" id="sl-dx" min="-20000" max="20000" step="10" value="0" oninput="onSlider('dx')">
+            <div class="slider-hints"><span>← kiri</span><span>kanan →</span></div>
+          </div>
+
+          <div class="slider-block">
+            <div class="slider-top">
+              <label>Geser Y (atas/bawah)</label>
+              <input class="num-input" type="number" id="num-dy" value="0" step="10"
+                onchange="onNumInput('dy', this.value)">
+            </div>
+            <input type="range" id="sl-dy" min="-20000" max="20000" step="10" value="0" oninput="onSlider('dy')">
+            <div class="slider-hints"><span>↑ atas</span><span>bawah ↓</span></div>
+          </div>
+
+          <div class="slider-block">
+            <div class="slider-top">
+              <label>Skala Ukuran</label>
+              <input class="num-input" type="number" id="num-scale" value="1.00" step="0.05" min="0.1" max="4"
+                onchange="onNumInput('scale', this.value)">
+            </div>
+            <input type="range" id="sl-scale" min="0.1" max="4" step="0.05" value="1" oninput="onSlider('scale')">
+            <div class="slider-hints"><span>0.1× kecil</span><span>4.0× besar</span></div>
+          </div>
+
+          <button class="panel-btn danger" onclick="resetSelected()">Reset Elemen Ini</button>
+        </div>
+
+        <!-- Adjustments list -->
+        <div>
+          <div class="section-label">Semua Penyesuaian</div>
+          <div id="adj-list">
+            <div class="no-adj">Belum ada penyesuaian.</div>
+          </div>
+        </div>
+
+      </div><!-- /panel-scroll -->
+
+      <div id="panel-bottom">
+        <button class="panel-btn danger" onclick="clearAll()">Hapus Semua Penyesuaian</button>
+        <button class="panel-btn primary" onclick="saveAndApply()">Simpan &amp; Terapkan ke Generator</button>
+      </div>
+    </div><!-- /panel -->
+  </main>
+
+  <script>
+    // ─────────────────────────────────────────────────────────────────
+    // Constants
+    // ─────────────────────────────────────────────────────────────────
+    const FRONT_SVG = 'front.svg'
+    const BACK_SVG = 'back.svg'
+    const LS_KEY = 'ich_adj'
+
+    const DUMMY_FRONT = {
+      'NAMA PESERTA': 'NAMA PESERTA',
+      'Nomor Sertifikat 2': 'ICH-2026-001',
+      'Nomor Sertifikat 1': 'ICH-2026-001',
+      'Tempat dan Tanggal Lahir Peserta': 'Jakarta, 1 Januari 2000',
+      'Level Bahasa Jepang': 'N5 (Dasar)',
+      'predikat': 'Sangat Amat Baik',
+      'lama Waktu Belajar': '6 bulan',
+      'lulus/ tidak lulus': 'Lulus',
+      'Tanggal Selesai Kursus': '30 Juni 2026',
+      'Tanggal terbit Sertifikat': '25 Juni 2026',
+    }
+
+    const DUMMY_BACK = {
+      'NAMA': 'NAMA PESERTA',
+      'Tanggal terbit sertifikat': '25 Juni 2026',
+      'lulus/tidak': 'Lulus',
+      'nilai1': '85', 'nilai2': '80', 'nilai3': '90', 'nilai4': '88', 'nilai5': '87',
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // State
+    // ─────────────────────────────────────────────────────────────────
+    let currentPage = 'front'
+    let currentSVGEl = null      // live <svg> in DOM
+    let selectedId = null      // adj-id of selected element
+    let selRectEl = null      // blue selection rect overlay
+
+    // adjustments: { front: { "42": {label,dx,dy,scale}, … }, back: {…} }
+    let adjustments = { front: {}, back: {} }
+    try {
+      const s = JSON.parse(localStorage.getItem(LS_KEY));
+      if (s) {
+        adjustments = s;
+        // MIGRATION: Rescue old calibration data that used DUMMY texts as keys instead of raw placeholders
+        const mig = {
+          "t:Lahir di Jakarta, 1 Januari 2000Telah me": "t:Lahir di {{Tempat dan Tanggal Lahir Pe",
+          "t:NAMA PESERTA": "t:{{NAMA PESERTA}}",
+          "t:ICH-2026-001__1": "t:{{Nomor Sertifikat 1}}",
+          "t:ICH-2026-001": "t:{{Nomor Sertifikat 2}}",
+          "t:N5 (Dasar)": "t:{{Level Bahasa Jepang}}",
+          "t:Sangat Amat Baik": "t:{{predikat}}",
+          "t:6 bulan": "t:{{lama Waktu Belajar}}",
+          "t:Lulus": "t:{{lulus/ tidak lulus}}",
+          "t:30 Juni 2026": "t:{{Tanggal Selesai Kursus}}",
+          "t:25 Juni 2026": "t:{{Tanggal terbit Sertifikat}}"
+        }
+        let migrated = false;
+
+        ['front', 'back'].forEach(page => {
+          if (adjustments[page]) {
+            Object.keys(adjustments[page]).forEach(k => {
+              if (mig[k]) {
+                adjustments[page][mig[k]] = adjustments[page][k];
+                delete adjustments[page][k];
+                migrated = true;
+              } else if (page === 'back' && k === "t:25 Juni 2026") {
+                adjustments[page]["t:{{Tanggal terbit sertifikat}}"] = adjustments[page][k];
+                delete adjustments[page][k];
+                migrated = true;
+              } else if (page === 'back' && k === "t:NAMA PESERTA") {
+                adjustments[page]["t:{{NAMA}}"] = adjustments[page][k];
+                delete adjustments[page][k];
+                migrated = true;
+              } else if (page === 'back' && k === "t:Lulus") {
+                adjustments[page]["t:{{lulus/tidak}}"] = adjustments[page][k];
+                delete adjustments[page][k];
+                migrated = true;
+              }
+            })
+          }
+        });
+
+        if (migrated) localStorage.setItem(LS_KEY, JSON.stringify(adjustments));
+      }
+    } catch { }
+
+    // ─────────────────────────────────────────────────────────────────
+    // SVG helpers — identical to index.html
+    // ─────────────────────────────────────────────────────────────────
+    function preProcessSVG(svgText) {
+      svgText = svgText.replace(
+        /\{\{ A<\/text>(\s*<text\b[^>]*>) \}\}<\/text>(\s*<text\b[^>]*>)mat Baik(<\/text>)/,
+        `{{ Amat Baik }}</text>$1</text>$2$3`
+      )
+      svgText = svgText.replace(
+        /\{\{([^<}]*)<\/text>(\s*<text\b[^>]*>)\s*([^<}]*\}\})/g,
+        (_, p1, tag, p2) => `</text>${tag}{{${p1}${p2}`
+      )
+      return svgText
+    }
+
+    function parseSVG(text) {
+      return new DOMParser().parseFromString(text, 'image/svg+xml')
+    }
+
+    function patchFonts(doc) {
+      const style = doc.querySelector('style')
+      if (!style) return
+      let css = style.textContent
+      css = css.replace(/font-family:'Barlow Condensed SemiBold'/g, "font-family:'Barlow Condensed'")
+      css = css.replace(/font-family:'Barlow Condensed Medium'/g, "font-family:'Barlow Condensed'")
+      style.textContent = css
+    }
+
+    function hideWatermarks(doc) {
+      const mainG = doc.querySelector('g[id^="_"]')
+      if (!mainG) return
+      const secondChild = mainG.children[1]
+      if (!secondChild || secondChild.tagName.toLowerCase() !== 'g') return
+      const sample = secondChild.querySelector('text')
+      if (sample && sample.textContent.includes('いちから')) {
+        secondChild.setAttribute('display', 'none')
+      }
+    }
+
+    async function patchImagePaths(doc, imgFolder, prefix) {
+      const NS = 'http://www.w3.org/1999/xlink'
+      const re = prefix ? new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) : null
+      const tasks = []
+      doc.querySelectorAll('image').forEach(el => {
+        const href = el.getAttributeNS(NS, 'href') || el.getAttribute('xlink:href') || el.getAttribute('href') || ''
+        if (href.startsWith('data:')) return
+        let name = href.replace(/\\/g, '/').split('/').pop()
+        if (re) name = name.replace(re, '')
+        const url = imgFolder + name
+        tasks.push(
+          fetch(url).then(r => r.blob()).then(b => new Promise(res => {
+            const fr = new FileReader()
+            fr.onload = e => {
+              el.setAttributeNS(NS, 'xlink:href', e.target.result)
+              el.setAttribute('href', e.target.result)
+              res()
+            }
+            fr.readAsDataURL(b)
+          })).catch(() => { el.setAttributeNS(NS, 'xlink:href', url); el.setAttribute('href', url) })
+        )
+      })
+      await Promise.all(tasks)
+    }
+
+    function replacePlaceholders(doc, map) {
+      const NS = 'http://www.w3.org/2000/svg'
+
+      // Keys that have variable-length values → apply center-anchor
+      const centerKeys = new Set([
+        'NAMA PESERTA', 'NAMA', 'predikat', 'Level Bahasa Jepang',
+        'lama Waktu Belajar', 'lulus/ tidak lulus', 'lulus/tidak',
+        'Nomor Sertifikat 1', 'Nomor Sertifikat 2',
+        'Tempat dan Tanggal Lahir Peserta',
+      ])
+
+      for (const el of doc.getElementsByTagNameNS(NS, 'text')) {
+        if (el.closest('defs')) continue
+        for (const [key, val] of Object.entries(map)) {
+          const re = new RegExp(`\\{\\{\\s*${key.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&')}\\s*\\}\\}`, 'gi')
+          const nodes = []
+          el.childNodes.forEach(n => { if (n.nodeType === 3) nodes.push(n) })
+          el.querySelectorAll('tspan').forEach(t => t.childNodes.forEach(n => { if (n.nodeType === 3) nodes.push(n) }))
+
+          let matched = false
+          nodes.forEach(n => {
+            if (re.test(n.textContent)) {
+              n.textContent = n.textContent.replace(re, val)
+              matched = true
+            }
+          })
+
+          if (matched && centerKeys.has(key)) {
+            const xAttr = parseFloat(el.getAttribute('x') || 0)
+            if (!isNaN(xAttr)) {
+              el.setAttribute('text-anchor', 'middle')
+              el.querySelectorAll('tspan').forEach(t => {
+                if (t.hasAttribute('x')) t.setAttribute('x', xAttr)
+              })
+            }
+          }
+        }
+      }
+    }
+
+    // Assign a SEMANTIC adj-id (content-based) so saved adjustments survive
+    // SVG regeneration. Same logic as index.html assignAdjIds().
+    function assignAdjIds(doc) {
+      const seen = new Map()
+      doc.querySelectorAll('text, image').forEach(el => {
+        let base
+        if (el.tagName.toLowerCase() === 'image') {
+          const NS = 'http://www.w3.org/1999/xlink'
+          const href = el.getAttributeNS(NS, 'href') || el.getAttribute('xlink:href') || el.getAttribute('href') || 'img'
+          base = 'i:' + href.split('/').pop().split('\\').pop().replace(/[^\w.-]/g, '').slice(0, 40)
+        } else {
+          const txt = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40)
+          base = 't:' + txt
+        }
+        const cnt = seen.get(base) || 0
+        seen.set(base, cnt + 1)
+        el.setAttribute('adj-id', cnt === 0 ? base : `${base}__${cnt}`)
+      })
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Store natural bounding boxes before any adj transforms.
+    //
+    // Fix #3: Wrap getBBox() calls in requestAnimationFrame to ensure the
+    // browser has completed layout after appendChild(). Returns a Promise
+    // so callers can await it before calling reapplyAll().
+    // ─────────────────────────────────────────────────────────────────
+    function storeOriginalBBoxes(svgEl) {
+      return new Promise(resolve => {
+        // rAF ensures a layout frame has completed, so getBBox() returns real values.
+        requestAnimationFrame(() => {
+          svgEl.querySelectorAll('[adj-id]').forEach(el => {
+            try {
+              const b = el.getBBox()
+              el.dataset.obx = b.x
+              el.dataset.oby = b.y
+              el.dataset.obw = b.width
+              el.dataset.obh = b.height
+              el.dataset.otr = el.getAttribute('transform') || ''
+            } catch { }
+          })
+          resolve()
+        })
+      })
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Apply adjustment transform
+    // Scale around original center (from stored BBox), then offset by dx/dy.
+    // Transform order: translate(tx,ty) scale(s) [original_CorelDRAW_matrix]
+    // The original matrix is innermost so rotate/skew is applied first,
+    // then scale expands/shrinks in that local space, then translate offsets.
+    // ─────────────────────────────────────────────────────────────────
+    function applyAdjTransform(el, dx, dy, scale) {
+      const cx = parseFloat(el.dataset.obx || 0) + parseFloat(el.dataset.obw || 0) / 2
+      const cy = parseFloat(el.dataset.oby || 0) + parseFloat(el.dataset.obh || 0) / 2
+      const tx = (dx + cx * (1 - scale)).toFixed(2)
+      const ty = (dy + cy * (1 - scale)).toFixed(2)
+      const adj = `translate(${tx},${ty}) scale(${scale})`
+      const orig = el.dataset.otr || ''
+      el.setAttribute('transform', orig ? `${adj} ${orig}` : adj)
+    }
+
+    function resetAdjTransform(el) {
+      const orig = el.dataset.otr || ''
+      if (orig) el.setAttribute('transform', orig)
+      else el.removeAttribute('transform')
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Load & render page
+    // ─────────────────────────────────────────────────────────────────
+    async function loadPage(page) {
+      const wrapper = document.getElementById('svg-wrapper')
+      const overlay = document.getElementById('loading-overlay')
+      overlay.style.display = 'flex'
+      setStatus('Memuat…')
+      clearSelRect()
+      selectedId = null
+      currentSVGEl = null
+      wrapper.querySelectorAll('svg').forEach(e => e.remove())
+      hideSliders()
+
+      try {
+        await document.fonts.ready
+
+        const [file, imgFolder, prefix, dummy] = page === 'front'
+          ? [FRONT_SVG, 'front_images/', 'Backup_of_1. Bani_', DUMMY_FRONT]
+          : [BACK_SVG, 'back_images/', 'Belakang_', DUMMY_BACK]
+
+        const raw = await fetch(file).then(r => r.text())
+        const doc = parseSVG(preProcessSVG(raw))
+        patchFonts(doc)
+        // hideWatermarks intentionally NOT called — watermark is part of the design and
+        // must stay visible so the adjuster matches the final preview/PDF output.
+        await patchImagePaths(doc, imgFolder, prefix)
+        // MUST assign IDs BEFORE replacing placeholders, otherwise the ID is 
+        // generated from dummy strings, failing to match index.html/mass.html.
+        assignAdjIds(doc)
+        replacePlaceholders(doc, dummy)
+
+        const svgEl = document.importNode(doc.documentElement, true)
+        svgEl.removeAttribute('width')
+        svgEl.removeAttribute('height')
+        svgEl.style.cssText = 'display:block;width:100%;height:auto'
+        wrapper.appendChild(svgEl)
+        currentSVGEl = svgEl
+
+        // Fix #3: Await rAF-wrapped storeOriginalBBoxes so getBBox() runs after layout
+        await storeOriginalBBoxes(svgEl)
+
+        // Restore previously saved adjustments
+        reapplyAll()
+
+        svgEl.addEventListener('click', onSVGClick)
+        overlay.style.display = 'none'
+        setStatus(`Halaman ${page === 'front' ? 'Depan' : 'Belakang'} – klik elemen untuk memilih`)
+      } catch (err) {
+        overlay.textContent = 'Error: ' + err.message
+        console.error(err)
+      }
+    }
+
+    function reapplyAll() {
+      if (!currentSVGEl) return
+      Object.entries(adjustments[currentPage] || {}).forEach(([id, adj]) => {
+        const el = currentSVGEl.querySelector(`[adj-id="${id}"]`)
+        if (el) applyAdjTransform(el, adj.dx, adj.dy, adj.scale)
+      })
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Selection
+    // ─────────────────────────────────────────────────────────────────
+    function onSVGClick(e) {
+      if (e.target.classList.contains('adj-sel-rect')) return
+
+      let target = e.target
+      while (target && target !== currentSVGEl) {
+        const tag = (target.tagName || '').toLowerCase()
+        if (tag === 'text' || tag === 'image') break
+        target = target.parentElement
+      }
+
+      const adjId = target && target !== currentSVGEl ? target.getAttribute('adj-id') : null
+      if (adjId === null) { clearSelection(); return }
+
+      selectElement(adjId, target)
+    }
+
+    function selectElement(adjId, el) {
+      selectedId = adjId
+      const existing = adjustments[currentPage][adjId] || { dx: 0, dy: 0, scale: 1 }
+
+      // Sync sliders
+      setSlidersFrom(existing.dx, existing.dy, existing.scale)
+
+      // Label
+      const label = el.tagName.toLowerCase() === 'image'
+        ? 'Gambar @ (' + (el.getAttribute('x') || '?') + ', ' + (el.getAttribute('y') || '?') + ')'
+        : 'Teks: ' + (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 50)
+
+      document.getElementById('hint-text').style.display = 'none'
+      const selLabel = document.getElementById('selected-label')
+      selLabel.textContent = label
+      selLabel.style.display = 'block'
+      showSliders()
+      drawSelRect(el)
+      renderAdjList()
+    }
+
+    function clearSelection() {
+      selectedId = null
+      clearSelRect()
+      document.getElementById('hint-text').style.display = 'block'
+      document.getElementById('selected-label').style.display = 'none'
+      hideSliders()
+      renderAdjList()
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Selection rect (blue dashed outline)
+    // ─────────────────────────────────────────────────────────────────
+    function drawSelRect(el) {
+      clearSelRect()
+      if (!currentSVGEl) return
+      try {
+        const b = el.getBBox()
+        const ns = 'http://www.w3.org/2000/svg'
+        selRectEl = document.createElementNS(ns, 'rect')
+        selRectEl.classList.add('adj-sel-rect')
+        const PAD = 60
+        selRectEl.setAttribute('x', b.x - PAD)
+        selRectEl.setAttribute('y', b.y - PAD)
+        selRectEl.setAttribute('width', Math.max(b.width + PAD * 2, 200))
+        selRectEl.setAttribute('height', Math.max(b.height + PAD * 2, 200))
+        selRectEl.setAttribute('fill', 'rgba(110,142,251,.06)')
+        selRectEl.setAttribute('stroke', '#6e8efb')
+        selRectEl.setAttribute('stroke-width', '3')
+        selRectEl.style.vectorEffect = 'non-scaling-stroke'
+        selRectEl.setAttribute('stroke-dasharray', '12 6')
+        selRectEl.setAttribute('pointer-events', 'none')
+        currentSVGEl.appendChild(selRectEl)
+      } catch { }
+    }
+
+    function clearSelRect() {
+      if (selRectEl) { selRectEl.remove(); selRectEl = null }
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Slider / number-input handlers
+    // ─────────────────────────────────────────────────────────────────
+    function onSlider(which) {
+      const v = parseFloat(document.getElementById('sl-' + which).value)
+      document.getElementById('num-' + which).value = which === 'scale' ? v.toFixed(2) : v
+      commit()
+    }
+
+    function onNumInput(which, raw) {
+      let v = parseFloat(raw)
+      if (isNaN(v)) return
+      if (which === 'scale') v = Math.max(0.1, Math.min(4, v))
+      else v = Math.max(-5000, Math.min(5000, v))
+      document.getElementById('sl-' + which).value = v
+      document.getElementById('num-' + which).value = which === 'scale' ? v.toFixed(2) : v
+      commit()
+    }
+
+    function commit() {
+      if (selectedId === null || !currentSVGEl) return
+      const dx = parseInt(document.getElementById('sl-dx').value, 10)
+      const dy = parseInt(document.getElementById('sl-dy').value, 10)
+      const scale = parseFloat(document.getElementById('sl-scale').value)
+
+      const el = currentSVGEl.querySelector(`[adj-id="${selectedId}"]`)
+      if (!el) return
+
+      // Derive label from element content
+      const existing = adjustments[currentPage][selectedId]
+      const label = existing
+        ? existing.label
+        : el.tagName.toLowerCase() === 'image'
+          ? 'Gambar @ (' + (el.getAttribute('x') || '?') + ', ' + (el.getAttribute('y') || '?') + ')'
+          : 'Teks: ' + (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 40)
+
+      adjustments[currentPage][selectedId] = { label, dx, dy, scale }
+      applyAdjTransform(el, dx, dy, scale)
+      drawSelRect(el)  // refresh rect at new position
+      renderAdjList()
+    }
+
+    function resetSelected() {
+      if (selectedId === null || !currentSVGEl) return
+      setSlidersFrom(0, 0, 1)
+      const el = currentSVGEl.querySelector(`[adj-id="${selectedId}"]`)
+      if (el) resetAdjTransform(el)
+      delete adjustments[currentPage][selectedId]
+      clearSelRect()
+      renderAdjList()
+    }
+
+    function setSlidersFrom(dx, dy, scale) {
+      document.getElementById('sl-dx').value = dx
+      document.getElementById('sl-dy').value = dy
+      document.getElementById('sl-scale').value = scale
+      document.getElementById('num-dx').value = dx
+      document.getElementById('num-dy').value = dy
+      document.getElementById('num-scale').value = parseFloat(scale).toFixed(2)
+    }
+
+    function showSliders() { document.getElementById('slider-section').style.display = 'flex' }
+    function hideSliders() { document.getElementById('slider-section').style.display = 'none' }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Render adjustments list
+    // ─────────────────────────────────────────────────────────────────
+    function renderAdjList() {
+      const list = document.getElementById('adj-list')
+      const entries = Object.entries(adjustments[currentPage] || {})
+      if (entries.length === 0) {
+        list.innerHTML = '<div class="no-adj">Belum ada penyesuaian.</div>'
+        return
+      }
+      list.innerHTML = entries.map(([id, adj]) => `
+    <div class="adj-item ${id === selectedId ? 'active' : ''}" onclick="clickListItem('${id}')">
+      <span class="adj-item-label">${adj.label}</span>
+      <span class="adj-item-vals">
+        ${adj.dx !== 0 ? `x${adj.dx > 0 ? '+' : ''}${adj.dx} ` : ''}
+        ${adj.dy !== 0 ? `y${adj.dy > 0 ? '+' : ''}${adj.dy} ` : ''}
+        ${adj.scale !== 1 ? `×${parseFloat(adj.scale).toFixed(2)}` : ''}
+      </span>
+      <button class="adj-del" onclick="event.stopPropagation();deleteAdj('${id}')" title="Hapus">×</button>
+    </div>`
+      ).join('')
+    }
+
+    function clickListItem(id) {
+      if (!currentSVGEl) return
+      const el = currentSVGEl.querySelector(`[adj-id="${id}"]`)
+      if (el) selectElement(id, el)
+    }
+
+    function deleteAdj(id) {
+      const el = currentSVGEl && currentSVGEl.querySelector(`[adj-id="${id}"]`)
+      if (el) resetAdjTransform(el)
+      delete adjustments[currentPage][id]
+      if (selectedId === id) clearSelection()
+      renderAdjList()
+    }
+
+    function clearAll() {
+      if (!confirm('Hapus semua penyesuaian halaman ' + (currentPage === 'front' ? 'Depan' : 'Belakang') + '?')) return
+      if (currentSVGEl) {
+        currentSVGEl.querySelectorAll('[adj-id]').forEach(el => resetAdjTransform(el))
+      }
+      adjustments[currentPage] = {}
+      clearSelection()
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Page switching
+    // ─────────────────────────────────────────────────────────────────
+    function switchPage(page) {
+      if (page === currentPage) return
+      currentPage = page
+      document.getElementById('tab-front').classList.toggle('active', page === 'front')
+      document.getElementById('tab-back').classList.toggle('active', page === 'back')
+      loadPage(page)
+    }
+
+    function reloadSVG() { loadPage(currentPage) }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Save / Export
+    // ─────────────────────────────────────────────────────────────────
+    function saveAndApply() {
+      try {
+        localStorage.setItem(LS_KEY, JSON.stringify(adjustments))
+        toast('Tersimpan! Buka generator sertifikat, klik Generate Preview untuk melihat hasil.', 'ok')
+      } catch (err) {
+        toast('Gagal menyimpan: ' + err.message, 'err')
+      }
+    }
+
+    function copyJSON() {
+      const json = JSON.stringify(adjustments, null, 2)
+      navigator.clipboard.writeText(json)
+        .then(() => toast('JSON disalin ke clipboard!', 'ok'))
+        .catch(() => { prompt('Salin JSON ini:', json) })
+    }
+
+    // Impor JSON penyesuaian (hasil "Salin JSON") → ganti semua adjustment lalu terapkan
+    function importJSON() {
+      const ov = document.createElement('div')
+      ov.setAttribute('data-imp', '1')
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(7,8,16,.78);display:flex;align-items:center;justify-content:center;z-index:1000'
+      ov.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;width:min(560px,92vw);display:flex;flex-direction:column;gap:10px">
+      <div style="font-size:13px;font-weight:700;color:#e0e7ff">Impor JSON Penyesuaian</div>
+      <div style="font-size:11px;color:var(--text-dim);line-height:1.5">Tempel JSON hasil <b>Salin JSON</b>. Ini akan <b>mengganti</b> seluruh penyesuaian saat ini (front &amp; back), lalu disimpan &amp; diterapkan.</div>
+      <textarea id="imp-ta" spellcheck="false" placeholder='{ "front": { ... }, "back": { ... } }'
+        style="width:100%;height:220px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:monospace;font-size:12px;padding:8px;resize:vertical;outline:none"></textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="panel-btn" style="width:auto" id="imp-cancel">Batal</button>
+        <button class="panel-btn primary" style="width:auto" id="imp-go">Impor &amp; Terapkan</button>
+      </div>
+    </div>`
+      document.body.appendChild(ov)
+      const close = () => ov.remove()
+      ov.addEventListener('click', e => { if (e.target === ov) close() })
+      ov.querySelector('#imp-cancel').onclick = close
+      ov.querySelector('#imp-ta').focus()
+      ov.querySelector('#imp-go').onclick = () => {
+        const raw = ov.querySelector('#imp-ta').value.trim()
+        if (!raw) { toast('Tempel JSON dulu', 'err'); return }
+        let parsed
+        try { parsed = JSON.parse(raw) } catch (e) { toast('JSON tidak valid: ' + e.message, 'err'); return }
+        if (typeof parsed !== 'object' || parsed === null || (!parsed.front && !parsed.back)) {
+          toast('Format salah — harus ada "front" dan/atau "back"', 'err'); return
+        }
+        adjustments = { front: parsed.front || {}, back: parsed.back || {} }
+        try { localStorage.setItem(LS_KEY, JSON.stringify(adjustments)) } catch { }
+        close()
+        loadPage(currentPage)   // muat ulang & terapkan ke halaman aktif
+        toast('Penyesuaian diimpor & diterapkan!', 'ok')
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Utilities
+    // ─────────────────────────────────────────────────────────────────
+    function setStatus(msg) { document.getElementById('status-msg').textContent = msg }
+
+    function toast(msg, type = 'ok') {
+      const el = document.createElement('div')
+      el.className = 'toast toast-' + type
+      el.textContent = msg
+      document.body.appendChild(el)
+      setTimeout(() => el.remove(), 3500)
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Init
+    // ─────────────────────────────────────────────────────────────────
+    loadPage('front')
+    renderAdjList()
+  </script>
+</body>
+
+</html>
