@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Select } from '../../components/ui/select';
 import { Download, UploadCloud, FileType2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { useToast } from '../../components/ui/toast';
@@ -264,17 +264,13 @@ export default function SertifikatSingle() {
                             <Label>Level & Predikat</Label>
                             <div className="flex gap-2">
                                 <Input name="level" value={formData.level} onChange={handleChange} placeholder="N5" className="flex-1" />
-                                <Select value={formData.predikat} onValueChange={(v) => setFormData({ ...formData, predikat: v })}>
-                                    <SelectTrigger className="flex-1">
-                                        <SelectValue placeholder="Predikat" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Sempurna">Sempurna</SelectItem>
-                                        <SelectItem value="Amat Sangat Baik">AMB</SelectItem>
-                                        <SelectItem value="Amat Baik">Amat Baik</SelectItem>
-                                        <SelectItem value="Baik">Baik</SelectItem>
-                                        <SelectItem value="Cukup">Cukup</SelectItem>
-                                    </SelectContent>
+                                <Select value={formData.predikat} onChange={(e) => setFormData({ ...formData, predikat: e.target.value })} className="flex-1">
+                                    <option value="" disabled>Predikat</option>
+                                    <option value="Sempurna">Sempurna</option>
+                                    <option value="Amat Sangat Baik">AMB</option>
+                                    <option value="Amat Baik">Amat Baik</option>
+                                    <option value="Baik">Baik</option>
+                                    <option value="Cukup">Cukup</option>
                                 </Select>
                             </div>
                         </div>
@@ -287,14 +283,10 @@ export default function SertifikatSingle() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Status</Label>
-                                    <Select value={formData.lulus} onValueChange={(v) => setFormData({ ...formData, lulus: v })}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Pilih..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="LULUS">Lulus</SelectItem>
-                                            <SelectItem value="TIDAK LULUS">Tidak Lulus</SelectItem>
-                                        </SelectContent>
+                                    <Select value={formData.lulus} onChange={(e) => setFormData({ ...formData, lulus: e.target.value })}>
+                                        <option value="" disabled>Pilih...</option>
+                                        <option value="LULUS">Lulus</option>
+                                        <option value="TIDAK LULUS">Tidak Lulus</option>
                                     </Select>
                                 </div>
                             </div>
