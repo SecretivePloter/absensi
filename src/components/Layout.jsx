@@ -3,7 +3,7 @@ import { clsx } from 'clsx'
 import {
   LayoutDashboard, Users, ScanLine,
   ClipboardList, Settings, Moon, Sun, LogOut, Menu, X, CreditCard, Images,
-  Shield, FileBarChart, CalendarDays
+  Shield, FileBarChart, CalendarDays, Award
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuthStore } from '../store/useAuthStore'
@@ -20,6 +20,7 @@ const allNavItems = [
   { to: '/gallery', icon: Images, label: 'Galeri', roles: ['admin'] },
   { to: '/events', icon: CalendarDays, label: 'Event Malam', roles: ['admin'] },
   { to: '/settings', icon: Settings, label: 'Pengaturan', roles: ['admin'] },
+  { to: '/sertifikat', icon: Award, label: 'Sertifikat', roles: ['admin'] },
   { to: '/scan', icon: ScanLine, label: 'Scan QR', roles: ['admin', 'operator'], external: true },
 ]
 

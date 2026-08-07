@@ -1,0 +1,6 @@
+  <clipPath id="id0">
+   <rect x="8711.17" y="6232.83" width="1081.9" height="1117.57"/>
+  </clipPath>
+  <clipPath id="id1">
+   <rect x="8711.17" y="6232.83" width="1081.9" height="1117.57"/>
+  </clipPath>

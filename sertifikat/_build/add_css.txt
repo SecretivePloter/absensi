@@ -1,0 +1,27 @@
+    @font-face { font-family:"Libre Bodoni";font-variant:normal;font-weight:normal;src:url("#FontID10") format(svg)}
+    @font-face { font-family:"Barlow Semi Condensed";font-variant:normal;font-style:normal;font-weight:bold;src:url("#FontID6") format(svg)}
+    @font-face { font-family:"Barlow Semi Condensed";font-variant:normal;font-style:normal;font-weight:normal;src:url("#FontID5") format(svg)}
+    @font-face { font-family:"Calibri";font-variant:normal;font-style:normal;font-weight:normal;src:url("#FontID3") format(svg)}
+    @font-face { font-family:"Times New Roman";font-variant:normal;font-style:normal;font-weight:normal;src:url("#FontID2") format(svg)}
+    @font-face { font-family:"Barlow Condensed SemiBold";font-variant:normal;font-weight:600;src:url("#FontID1") format(svg)}
+    .fil4 {fill:#FF000C}
+    .fil5 {fill:#84D9FF}
+    .fil6 {fill:#201E1E}
+    .fil7 {fill:#373435}
+    .fil8 {fill:#201E1E}
+    .fil9 {fill:#201E1E}
+    .fil10 {fill:#201E1E}
+    .fnt3 {font-weight:normal;font-size:138.35px;font-family:'MS PGothic'}
+    .fnt6 {font-weight:normal;font-size:152.78px;font-family:'Calibri'}
+    .fnt13 {font-weight:normal;font-size:152.78px;font-family:'Barlow Semi Condensed'}
+    .fnt16 {font-weight:normal;font-size:166.67px;font-family:'Barlow Semi Condensed'}
+    .fnt15 {font-weight:600;font-size:180.56px;font-family:'Barlow Condensed SemiBold'}
+    .fnt8 {font-weight:normal;font-size:183.67px;font-family:'Barlow Semi Condensed'}
+    .fnt10 {font-weight:normal;font-size:183.67px;font-family:'Barlow Semi Condensed'}
+    .fnt12 {font-weight:normal;font-size:183.67px;font-family:'Barlow Semi Condensed'}
+    .fnt9 {font-weight:bold;font-size:183.67px;font-family:'Barlow Semi Condensed'}
+    .fnt11 {font-weight:bold;font-size:183.67px;font-family:'Barlow Semi Condensed'}
+    .fnt4 {font-weight:600;font-size:295px;font-family:'Barlow Condensed SemiBold'}
+    .fnt7 {font-weight:600;font-size:499.55px;font-family:'Barlow Condensed SemiBold'}
+    .fnt5 {font-weight:normal;font-size:683.33px;font-family:'Times New Roman'}
+    .fnt14 {font-weight:normal;font-size:697.09px;font-family:'Libre Bodoni'}
