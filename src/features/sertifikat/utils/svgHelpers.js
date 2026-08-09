@@ -66,7 +66,7 @@ export async function patchImagePaths(svgDoc, folder, prefixMatch) {
                 };
                 reader.readAsDataURL(blob);
             }))
-            .catch(e => {
+            .catch(() => {
                 console.warn("Failed to load image for svg patch:", relPath);
                 el.setAttribute('href', relPath);
             });
@@ -89,7 +89,7 @@ export function replacePlaceholders(svgDoc, map) {
         if (el.closest('defs')) continue;
 
         for (const [key, value] of Object.entries(map)) {
-            const escaped = key.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&');
+            const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const re = new RegExp(`\\{\\{\\s*${escaped}\\s*\\}\\}`, 'gi');
 
             const nodes = [];
@@ -147,7 +147,7 @@ export function applyStoredAdjustments(svgEl, page) {
             for (const [adjId, adj] of adjEntries) {
                 const el = svgEl.querySelector(`[adj-id="${adjId}"]`);
                 if (!el) continue;
-                try { jobs.push({ el, adj, b: el.getBBox() }); } catch (e) { }
+                try { jobs.push({ el, adj, b: el.getBBox() }); } catch { /* getBBox fails on detached elements — skip */ }
             }
             for (const { el, adj, b } of jobs) {
                 const cx = b.x + b.width / 2, cy = b.y + b.height / 2;
