@@ -236,19 +236,24 @@ export default function SertifikatSingle() {
     };
 
     const handleDownload = async () => {
-        const frontSvg = frontRef.current?.querySelector('svg');
-        const backSvg = backRef.current?.querySelector('svg');
-        if (!frontSvg || !backSvg) {
+        if (previewState !== 'done') {
             toast({ title: 'Generate preview terlebih dahulu', variant: 'destructive' });
             return;
         }
-        toast({ title: 'Menyiapkan PDF...' });
+        toast({ title: 'Menyiapkan PDF…' });
         try {
-            // A4 Landscape @ 300 DPI
+            // Re-process SVGs fresh so download is independent of DOM state
+            const { frontDoc, backDoc } = await processSVGs();
+            // Apply stored layout adjustments (uses bbox data stored by adjust.html)
+            await applyStoredAdjustments(frontDoc, 'front');
+            await applyStoredAdjustments(backDoc, 'back');
+
             const W = 3508, H = 2480;
+            const frontEl = document.importNode(frontDoc.documentElement, true);
+            const backEl = document.importNode(backDoc.documentElement, true);
             const [c1, c2] = await Promise.all([
-                svgToCanvas(frontSvg.cloneNode(true), W, H),
-                svgToCanvas(backSvg.cloneNode(true), W, H),
+                svgToCanvas(frontEl, W, H),
+                svgToCanvas(backEl, W, H),
             ]);
             const doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a4' });
             doc.addImage(c1.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 297, 210);
