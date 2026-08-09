@@ -12,8 +12,8 @@ function copySertifikatAssets() {
       const dest = join(__dirname, 'public', 'sertifikat')
       if (!existsSync(dest)) mkdirSync(dest, { recursive: true })
 
-      // Copy main SVG files
-      const svgFiles = ['front.svg', 'back.svg']
+      // Copy main SVG + calibration tool
+      const svgFiles = ['front.svg', 'back.svg', 'adjust.html']
       for (const f of svgFiles) {
         const s = join(src, f), d = join(dest, f)
         if (existsSync(s)) {

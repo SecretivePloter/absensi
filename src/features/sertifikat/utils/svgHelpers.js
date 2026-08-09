@@ -142,21 +142,61 @@ export function applyStoredAdjustments(svgEl, page) {
         const adjEntries = Object.entries(stored);
         if (!adjEntries.length) { resolve(); return; }
 
-        requestAnimationFrame(() => {
-            const jobs = [];
+        // Accept both Document node and SVGElement
+        const svgNode = (svgEl.nodeType === 9) ? svgEl.documentElement : svgEl;
+        if (!svgNode) { resolve(); return; }
+
+        const applyOne = (el, adj, b) => {
+            const cx = b.x + b.width / 2;
+            const cy = b.y + b.height / 2;
+            const tx = (adj.dx + cx * (1 - adj.scale)).toFixed(2);
+            const ty = (adj.dy + cy * (1 - adj.scale)).toFixed(2);
+            const adj_tr = `translate(${tx},${ty}) scale(${adj.scale})`;
+            const orig_tr = el.getAttribute('transform') || '';
+            el.setAttribute('transform', orig_tr ? `${adj_tr} ${orig_tr}` : adj_tr);
+        };
+
+        // Fast path: use bbox data stored by adjust.html (no DOM/getBBox needed)
+        const allHaveBbox = adjEntries.every(([, adj]) => adj.obx != null);
+        if (allHaveBbox) {
             for (const [adjId, adj] of adjEntries) {
-                const el = svgEl.querySelector(`[adj-id="${adjId}"]`);
+                const el = svgNode.querySelector(`[adj-id="${adjId}"]`);
                 if (!el) continue;
-                try { jobs.push({ el, adj, b: el.getBBox() }); } catch { /* getBBox fails on detached elements — skip */ }
+                applyOne(el, adj, { x: +adj.obx, y: +adj.oby, width: +adj.obw, height: +adj.obh });
             }
-            for (const { el, adj, b } of jobs) {
-                const cx = b.x + b.width / 2, cy = b.y + b.height / 2;
-                const tx = (adj.dx + cx * (1 - adj.scale)).toFixed(2);
-                const ty = (adj.dy + cy * (1 - adj.scale)).toFixed(2);
-                const adj_tr = `translate(${tx},${ty}) scale(${adj.scale})`;
-                const orig_tr = el.getAttribute('transform') || '';
-                el.setAttribute('transform', orig_tr ? `${adj_tr} ${orig_tr}` : adj_tr);
+            resolve();
+            return;
+        }
+
+        // Slow path: need getBBox — clone and temporarily attach to DOM if detached
+        const isDetached = !svgNode.isConnected;
+        let host = null;
+        let bboxSource = svgNode;
+
+        if (isDetached) {
+            const clone = svgNode.cloneNode(true);
+            host = document.createElement('div');
+            host.style.cssText = 'position:fixed;left:-99999px;top:-99999px;width:1170px;visibility:hidden;pointer-events:none';
+            host.appendChild(clone);
+            document.body.appendChild(host);
+            bboxSource = clone;
+        }
+
+        requestAnimationFrame(() => {
+            for (const [adjId, adj] of adjEntries) {
+                const el = svgNode.querySelector(`[adj-id="${adjId}"]`);
+                if (!el) continue;
+                let bbox;
+                if (adj.obx != null) {
+                    bbox = { x: +adj.obx, y: +adj.oby, width: +adj.obw, height: +adj.obh };
+                } else {
+                    const refEl = bboxSource.querySelector ? bboxSource.querySelector(`[adj-id="${adjId}"]`) : null;
+                    if (!refEl) continue;
+                    try { bbox = refEl.getBBox(); } catch { continue; }
+                }
+                applyOne(el, adj, bbox);
             }
+            if (host) document.body.removeChild(host);
             resolve();
         });
     });

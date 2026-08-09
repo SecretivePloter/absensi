@@ -5,7 +5,7 @@ import { supabaseCert } from '../../lib/supabaseCert';
 import { UploadCloud, FileSpreadsheet, Download, RefreshCcw, FileDown } from 'lucide-react';
 import { useToast } from '../../components/ui/toast';
 import { jsPDF } from 'jspdf';
-import { preProcessSVG, parseSVG, patchFonts, replacePlaceholders, injectPhoto, assignAdjIds } from './utils/svgHelpers';
+import { preProcessSVG, parseSVG, patchFonts, replacePlaceholders, injectPhoto, assignAdjIds, applyStoredAdjustments } from './utils/svgHelpers';
 
 const PREDIKAT_RANGES = [
     { min: 100, label: 'Sempurna' },
@@ -287,6 +287,10 @@ export default function SertifikatMass() {
                         });
                         injectPhoto(frontDoc, photoB64);
                     }
+
+                    // Apply stored layout adjustments before rendering to canvas
+                    await applyStoredAdjustments(frontDoc, 'front');
+                    await applyStoredAdjustments(backDoc, 'back');
 
                     const frontEl = document.importNode(frontDoc.documentElement, true);
                     const backEl = document.importNode(backDoc.documentElement, true);

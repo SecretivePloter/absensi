@@ -954,7 +954,14 @@
           ? 'Gambar @ (' + (el.getAttribute('x') || '?') + ', ' + (el.getAttribute('y') || '?') + ')'
           : 'Teks: ' + (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 40)
 
-      adjustments[currentPage][selectedId] = { label, dx, dy, scale }
+      adjustments[currentPage][selectedId] = {
+        label, dx, dy, scale,
+        // Store original bbox so the main app can apply transforms without needing getBBox()
+        obx: parseFloat(el.dataset.obx || 0),
+        oby: parseFloat(el.dataset.oby || 0),
+        obw: parseFloat(el.dataset.obw || 0),
+        obh: parseFloat(el.dataset.obh || 0),
+      }
       applyAdjTransform(el, dx, dy, scale)
       drawSelRect(el)  // refresh rect at new position
       renderAdjList()

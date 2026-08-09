@@ -192,9 +192,6 @@ export default function SertifikatSingle() {
         replacePlaceholders(backDoc, map);
         injectPhoto(frontDoc, photoDataURL);
 
-        await applyStoredAdjustments(frontDoc, 'front');
-        await applyStoredAdjustments(backDoc, 'back');
-
         return { frontDoc, backDoc };
     };
 
@@ -221,10 +218,15 @@ export default function SertifikatSingle() {
             const backEl = document.importNode(backDoc.documentElement, true);
 
             setPreviewState('done');
-            // Small delay so React renders the "done" state containers first
-            setTimeout(() => {
+            // Defer so React renders the containers first, then inject SVG + apply adjustments
+            setTimeout(async () => {
                 appendSVGToRef(frontEl, 'Halaman Depan', frontRef);
                 appendSVGToRef(backEl, 'Halaman Belakang', backRef);
+                // Apply stored layout adjustments AFTER SVGs are attached to the DOM (getBBox needs DOM context)
+                const frontSvg = frontRef.current?.querySelector('svg');
+                const backSvg = backRef.current?.querySelector('svg');
+                if (frontSvg) await applyStoredAdjustments(frontSvg, 'front');
+                if (backSvg) await applyStoredAdjustments(backSvg, 'back');
             }, 50);
         } catch (e) {
             console.error(e);

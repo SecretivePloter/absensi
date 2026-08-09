@@ -6,7 +6,7 @@ import { supabaseCert } from '../../lib/supabaseCert';
 import { Archive, Download, Trash2, RefreshCcw, Search, Loader } from 'lucide-react';
 import { useToast } from '../../components/ui/toast';
 import { jsPDF } from 'jspdf';
-import { preProcessSVG, parseSVG, patchFonts, replacePlaceholders, assignAdjIds } from './utils/svgHelpers';
+import { preProcessSVG, parseSVG, patchFonts, replacePlaceholders, assignAdjIds, applyStoredAdjustments } from './utils/svgHelpers';
 
 const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 function fmtDate(str) {
@@ -134,6 +134,10 @@ export default function SertifikatGallery() {
             await patchSVGImages(backDoc, '/sertifikat/back_images/', 'Belakang_');
             replacePlaceholders(frontDoc, map);
             replacePlaceholders(backDoc, map);
+
+            // Apply stored layout adjustments before rendering to canvas
+            await applyStoredAdjustments(frontDoc, 'front');
+            await applyStoredAdjustments(backDoc, 'back');
 
             const W = 3508, H = 2480;
             const frontEl = document.importNode(frontDoc.documentElement, true);
