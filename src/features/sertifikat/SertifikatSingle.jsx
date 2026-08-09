@@ -97,6 +97,7 @@ export default function SertifikatSingle() {
     });
     const [photoDataURL, setPhotoDataURL] = useState(null);
     const [previewState, setPreviewState] = useState('idle'); // idle | loading | done | error
+    const [svgReady, setSvgReady] = useState(false); // true setelah SVG + adj benar-benar ada di DOM
     const [isSaving, setIsSaving] = useState(false);
 
     const { toast } = useToast();
@@ -211,6 +212,7 @@ export default function SertifikatSingle() {
 
     const handleGeneratePreview = async () => {
         setPreviewState('loading');
+        setSvgReady(false);
         try {
             const { frontDoc, backDoc } = await processSVGs();
 
@@ -220,13 +222,19 @@ export default function SertifikatSingle() {
             setPreviewState('done');
             // Defer so React renders the containers first, then inject SVG + apply adjustments
             setTimeout(async () => {
-                appendSVGToRef(frontEl, 'Halaman Depan', frontRef);
-                appendSVGToRef(backEl, 'Halaman Belakang', backRef);
-                // Apply stored layout adjustments AFTER SVGs are attached to the DOM (getBBox needs DOM context)
-                const frontSvg = frontRef.current?.querySelector('svg');
-                const backSvg = backRef.current?.querySelector('svg');
-                if (frontSvg) await applyStoredAdjustments(frontSvg, 'front');
-                if (backSvg) await applyStoredAdjustments(backSvg, 'back');
+                try {
+                    appendSVGToRef(frontEl, 'Halaman Depan', frontRef);
+                    appendSVGToRef(backEl, 'Halaman Belakang', backRef);
+                    // Apply stored layout adjustments AFTER SVGs are in DOM
+                    const frontSvg = frontRef.current?.querySelector('svg');
+                    const backSvg = backRef.current?.querySelector('svg');
+                    if (frontSvg) await applyStoredAdjustments(frontSvg, 'front');
+                    if (backSvg) await applyStoredAdjustments(backSvg, 'back');
+                } catch (err) {
+                    console.error('Error saat append/adjust SVG:', err);
+                } finally {
+                    setSvgReady(true); // tandai SVG siap didownload
+                }
             }, 50);
         } catch (e) {
             console.error(e);
@@ -236,24 +244,19 @@ export default function SertifikatSingle() {
     };
 
     const handleDownload = async () => {
-        if (previewState !== 'done') {
-            toast({ title: 'Generate preview terlebih dahulu', variant: 'destructive' });
+        // Ambil langsung dari DOM — SVG sudah ada beserta kalibrasi yang diterapkan
+        const frontSvg = frontRef.current?.querySelector('svg');
+        const backSvg = backRef.current?.querySelector('svg');
+        if (!frontSvg || !backSvg) {
+            toast({ title: 'Preview belum siap. Klik Generate Preview terlebih dahulu.', variant: 'destructive' });
             return;
         }
         toast({ title: 'Menyiapkan PDF…' });
         try {
-            // Re-process SVGs fresh so download is independent of DOM state
-            const { frontDoc, backDoc } = await processSVGs();
-            // Apply stored layout adjustments (uses bbox data stored by adjust.html)
-            await applyStoredAdjustments(frontDoc, 'front');
-            await applyStoredAdjustments(backDoc, 'back');
-
             const W = 3508, H = 2480;
-            const frontEl = document.importNode(frontDoc.documentElement, true);
-            const backEl = document.importNode(backDoc.documentElement, true);
             const [c1, c2] = await Promise.all([
-                svgToCanvas(frontEl, W, H),
-                svgToCanvas(backEl, W, H),
+                svgToCanvas(frontSvg.cloneNode(true), W, H),
+                svgToCanvas(backSvg.cloneNode(true), W, H),
             ]);
             const doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a4' });
             doc.addImage(c1.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 297, 210);
@@ -411,7 +414,7 @@ export default function SertifikatSingle() {
                                 <Save className="w-4 h-4 mr-2" /> {isSaving ? 'Menyimpan...' : 'Simpan Arsip'}
                             </Button>
                             <Button variant="default" size="sm" onClick={handleDownload}
-                                disabled={previewState !== 'done'}>
+                                disabled={!svgReady}>
                                 <Download className="w-4 h-4 mr-2" /> Download PDF
                             </Button>
                         </div>

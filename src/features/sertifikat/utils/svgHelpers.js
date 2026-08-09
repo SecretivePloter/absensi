@@ -146,6 +146,11 @@ export function applyStoredAdjustments(svgEl, page) {
         const svgNode = (svgEl.nodeType === 9) ? svgEl.documentElement : svgEl;
         if (!svgNode) { resolve(); return; }
 
+        // Build lookup Map via getAttribute — NEVER use querySelector with adj-id values
+        // because adj-ids contain { } and : characters that break CSS selector parsing.
+        const elMap = new Map();
+        svgNode.querySelectorAll('[adj-id]').forEach(e => elMap.set(e.getAttribute('adj-id'), e));
+
         const applyOne = (el, adj, b) => {
             const cx = b.x + b.width / 2;
             const cy = b.y + b.height / 2;
@@ -156,11 +161,11 @@ export function applyStoredAdjustments(svgEl, page) {
             el.setAttribute('transform', orig_tr ? `${adj_tr} ${orig_tr}` : adj_tr);
         };
 
-        // Fast path: use bbox data stored by adjust.html (no DOM/getBBox needed)
+        // Fast path: all entries have bbox data from adjust.html — no DOM/getBBox needed
         const allHaveBbox = adjEntries.every(([, adj]) => adj.obx != null);
         if (allHaveBbox) {
             for (const [adjId, adj] of adjEntries) {
-                const el = svgNode.querySelector(`[adj-id="${adjId}"]`);
+                const el = elMap.get(adjId);
                 if (!el) continue;
                 applyOne(el, adj, { x: +adj.obx, y: +adj.oby, width: +adj.obw, height: +adj.obh });
             }
@@ -168,10 +173,10 @@ export function applyStoredAdjustments(svgEl, page) {
             return;
         }
 
-        // Slow path: need getBBox — clone and temporarily attach to DOM if detached
+        // Slow path: need getBBox — clone & temporarily attach to DOM if detached
         const isDetached = !svgNode.isConnected;
         let host = null;
-        let bboxSource = svgNode;
+        let cloneMap = null;
 
         if (isDetached) {
             const clone = svgNode.cloneNode(true);
@@ -179,18 +184,19 @@ export function applyStoredAdjustments(svgEl, page) {
             host.style.cssText = 'position:fixed;left:-99999px;top:-99999px;width:1170px;visibility:hidden;pointer-events:none';
             host.appendChild(clone);
             document.body.appendChild(host);
-            bboxSource = clone;
+            cloneMap = new Map();
+            clone.querySelectorAll('[adj-id]').forEach(e => cloneMap.set(e.getAttribute('adj-id'), e));
         }
 
         requestAnimationFrame(() => {
             for (const [adjId, adj] of adjEntries) {
-                const el = svgNode.querySelector(`[adj-id="${adjId}"]`);
+                const el = elMap.get(adjId);
                 if (!el) continue;
                 let bbox;
                 if (adj.obx != null) {
                     bbox = { x: +adj.obx, y: +adj.oby, width: +adj.obw, height: +adj.obh };
                 } else {
-                    const refEl = bboxSource.querySelector ? bboxSource.querySelector(`[adj-id="${adjId}"]`) : null;
+                    const refEl = cloneMap ? cloneMap.get(adjId) : el;
                     if (!refEl) continue;
                     try { bbox = refEl.getBBox(); } catch { continue; }
                 }
