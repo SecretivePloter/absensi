@@ -136,75 +136,77 @@ export function injectPhoto(svgDoc, dataURL) {
     }
 }
 
+// Apply penyesuaian tata letak dari localStorage.
+// Ketika SVG sudah di DOM: pakai getBBox() live — identik dengan adjust.html.
+// Ketika SVG belum di DOM (download/mass): pakai data obx/oby tersimpan dari JSON.
 export function applyStoredAdjustments(svgEl, page) {
     return new Promise(resolve => {
         const stored = JSON.parse(localStorage.getItem('ich_adj') || '{}')[page] || {};
-        const adjEntries = Object.entries(stored);
-        if (!adjEntries.length) { resolve(); return; }
+        if (!Object.keys(stored).length) { resolve(); return; }
 
-        // Accept both Document node and SVGElement
         const svgNode = (svgEl.nodeType === 9) ? svgEl.documentElement : svgEl;
         if (!svgNode) { resolve(); return; }
 
-        // Build lookup Map via getAttribute — NEVER use querySelector with adj-id values
-        // because adj-ids contain { } and : characters that break CSS selector parsing.
+        // Fungsi apply transform — identik dengan applyAdjTransform di adjust.html
+        const applyAdjTransform = (el, dx, dy, scale, bx, by, bw, bh, otr) => {
+            const cx = bx + bw / 2;
+            const cy = by + bh / 2;
+            const tx = (dx + cx * (1 - scale)).toFixed(2);
+            const ty = (dy + cy * (1 - scale)).toFixed(2);
+            const adjT = `translate(${tx},${ty}) scale(${scale})`;
+            const orig = otr || '';
+            el.setAttribute('transform', orig ? `${adjT} ${orig}` : adjT);
+        };
+
+        // Build element map — pakai getAttribute bukan querySelector
+        // agar aman untuk adj-id yang mengandung { } dan : karakter
         const elMap = new Map();
         svgNode.querySelectorAll('[adj-id]').forEach(e => elMap.set(e.getAttribute('adj-id'), e));
 
-        const applyOne = (el, adj, b) => {
-            const cx = b.x + b.width / 2;
-            const cy = b.y + b.height / 2;
-            const tx = (adj.dx + cx * (1 - adj.scale)).toFixed(2);
-            const ty = (adj.dy + cy * (1 - adj.scale)).toFixed(2);
-            const adj_tr = `translate(${tx},${ty}) scale(${adj.scale})`;
-            const orig_tr = el.getAttribute('transform') || '';
-            el.setAttribute('transform', orig_tr ? `${adj_tr} ${orig_tr}` : adj_tr);
-        };
+        if (svgNode.isConnected) {
+            // SVG sudah di DOM — pakai getBBox() live, identik dengan adjust.html
+            requestAnimationFrame(() => {
+                // Tahap 1: simpan bbox asli via getBBox (sama dengan storeOriginalBBoxes di adjust.html)
+                svgNode.querySelectorAll('[adj-id]').forEach(el => {
+                    try {
+                        const b = el.getBBox();
+                        el.dataset.oadjX = b.x;
+                        el.dataset.oadjY = b.y;
+                        el.dataset.oadjW = b.width;
+                        el.dataset.oadjH = b.height;
+                        el.dataset.oadjTr = el.getAttribute('transform') || '';
+                    } catch { /* getBBox tidak tersedia untuk elemen ini */ }
+                });
 
-        // Fast path: all entries have bbox data from adjust.html — no DOM/getBBox needed
-        const allHaveBbox = adjEntries.every(([, adj]) => adj.obx != null);
-        if (allHaveBbox) {
-            for (const [adjId, adj] of adjEntries) {
+                // Tahap 2: terapkan adj (sama dengan reapplyAll di adjust.html)
+                Object.entries(stored).forEach(([adjId, adj]) => {
+                    const el = elMap.get(adjId);
+                    if (!el) return;
+                    applyAdjTransform(
+                        el, adj.dx, adj.dy, adj.scale,
+                        parseFloat(el.dataset.oadjX || 0),
+                        parseFloat(el.dataset.oadjY || 0),
+                        parseFloat(el.dataset.oadjW || 0),
+                        parseFloat(el.dataset.oadjH || 0),
+                        el.dataset.oadjTr || ''
+                    );
+                });
+                resolve();
+            });
+        } else {
+            // SVG belum di DOM (download/mass/gallery) — pakai data tersimpan dari JSON
+            Object.entries(stored).forEach(([adjId, adj]) => {
                 const el = elMap.get(adjId);
-                if (!el) continue;
-                applyOne(el, adj, { x: +adj.obx, y: +adj.oby, width: +adj.obw, height: +adj.obh });
-            }
+                if (!el) return;
+                const bx = adj.obx != null ? +adj.obx : 0;
+                const by = adj.oby != null ? +adj.oby : 0;
+                const bw = adj.obw != null ? +adj.obw : 0;
+                const bh = adj.obh != null ? +adj.obh : 0;
+                const otr = el.getAttribute('transform') || '';
+                applyAdjTransform(el, adj.dx, adj.dy, adj.scale, bx, by, bw, bh, otr);
+            });
             resolve();
-            return;
         }
-
-        // Slow path: need getBBox — clone & temporarily attach to DOM if detached
-        const isDetached = !svgNode.isConnected;
-        let host = null;
-        let cloneMap = null;
-
-        if (isDetached) {
-            const clone = svgNode.cloneNode(true);
-            host = document.createElement('div');
-            host.style.cssText = 'position:fixed;left:-99999px;top:-99999px;width:1170px;visibility:hidden;pointer-events:none';
-            host.appendChild(clone);
-            document.body.appendChild(host);
-            cloneMap = new Map();
-            clone.querySelectorAll('[adj-id]').forEach(e => cloneMap.set(e.getAttribute('adj-id'), e));
-        }
-
-        requestAnimationFrame(() => {
-            for (const [adjId, adj] of adjEntries) {
-                const el = elMap.get(adjId);
-                if (!el) continue;
-                let bbox;
-                if (adj.obx != null) {
-                    bbox = { x: +adj.obx, y: +adj.oby, width: +adj.obw, height: +adj.obh };
-                } else {
-                    const refEl = cloneMap ? cloneMap.get(adjId) : el;
-                    if (!refEl) continue;
-                    try { bbox = refEl.getBBox(); } catch { continue; }
-                }
-                applyOne(el, adj, bbox);
-            }
-            if (host) document.body.removeChild(host);
-            resolve();
-        });
     });
 }
 

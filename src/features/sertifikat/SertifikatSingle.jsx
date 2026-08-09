@@ -97,7 +97,6 @@ export default function SertifikatSingle() {
     });
     const [photoDataURL, setPhotoDataURL] = useState(null);
     const [previewState, setPreviewState] = useState('idle'); // idle | loading | done | error
-    const [svgReady, setSvgReady] = useState(false); // true setelah SVG + adj benar-benar ada di DOM
     const [isSaving, setIsSaving] = useState(false);
 
     const { toast } = useToast();
@@ -212,7 +211,6 @@ export default function SertifikatSingle() {
 
     const handleGeneratePreview = async () => {
         setPreviewState('loading');
-        setSvgReady(false);
         try {
             const { frontDoc, backDoc } = await processSVGs();
 
@@ -220,21 +218,15 @@ export default function SertifikatSingle() {
             const backEl = document.importNode(backDoc.documentElement, true);
 
             setPreviewState('done');
-            // Defer so React renders the containers first, then inject SVG + apply adjustments
+            // Defer 50ms agar React render container dulu, baru inject SVG + terapkan adj
             setTimeout(async () => {
-                try {
-                    appendSVGToRef(frontEl, 'Halaman Depan', frontRef);
-                    appendSVGToRef(backEl, 'Halaman Belakang', backRef);
-                    // Apply stored layout adjustments AFTER SVGs are in DOM
-                    const frontSvg = frontRef.current?.querySelector('svg');
-                    const backSvg = backRef.current?.querySelector('svg');
-                    if (frontSvg) await applyStoredAdjustments(frontSvg, 'front');
-                    if (backSvg) await applyStoredAdjustments(backSvg, 'back');
-                } catch (err) {
-                    console.error('Error saat append/adjust SVG:', err);
-                } finally {
-                    setSvgReady(true); // tandai SVG siap didownload
-                }
+                appendSVGToRef(frontEl, 'Halaman Depan', frontRef);
+                appendSVGToRef(backEl, 'Halaman Belakang', backRef);
+                // Terapkan kalibrasi SETELAH SVG ada di DOM — identik dengan adjust.html
+                const frontSvg = frontRef.current?.querySelector('svg');
+                const backSvg = backRef.current?.querySelector('svg');
+                if (frontSvg) await applyStoredAdjustments(frontSvg, 'front');
+                if (backSvg) await applyStoredAdjustments(backSvg, 'back');
             }, 50);
         } catch (e) {
             console.error(e);
@@ -244,11 +236,11 @@ export default function SertifikatSingle() {
     };
 
     const handleDownload = async () => {
-        // Ambil langsung dari DOM — SVG sudah ada beserta kalibrasi yang diterapkan
+        // Ambil SVG dari DOM yang sudah punya kalibrasi dari preview
         const frontSvg = frontRef.current?.querySelector('svg');
         const backSvg = backRef.current?.querySelector('svg');
         if (!frontSvg || !backSvg) {
-            toast({ title: 'Preview belum siap. Klik Generate Preview terlebih dahulu.', variant: 'destructive' });
+            toast({ title: 'Klik Generate Preview terlebih dahulu.', variant: 'destructive' });
             return;
         }
         toast({ title: 'Menyiapkan PDF…' });
@@ -414,7 +406,7 @@ export default function SertifikatSingle() {
                                 <Save className="w-4 h-4 mr-2" /> {isSaving ? 'Menyimpan...' : 'Simpan Arsip'}
                             </Button>
                             <Button variant="default" size="sm" onClick={handleDownload}
-                                disabled={!svgReady}>
+                                disabled={previewState !== 'done'}>
                                 <Download className="w-4 h-4 mr-2" /> Download PDF
                             </Button>
                         </div>
