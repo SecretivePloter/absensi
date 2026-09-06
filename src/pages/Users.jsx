@@ -468,7 +468,7 @@ export default function Users() {
               <div className="space-y-2">
                 <Label>Audio Personal (opsional)</Label>
                 <p className="text-xs text-muted-foreground">
-                  Pilih dari Pustaka Audio (Pengaturan → Audio). Kosongkan untuk pakai audio acak default.
+                  Pilih dari Pustaka Audio kategori "Custom" (Pengaturan → Audio). Kosongkan untuk pakai audio acak default.
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
@@ -479,7 +479,7 @@ export default function Users() {
                         onChange={e => setForm(f => ({ ...f, custom_audio_masuk_url: e.target.value }))}
                       >
                         <option value="">Default (acak)</option>
-                        {audioLibrary.filter(a => a.category === 'masuk').map(a => (
+                        {audioLibrary.filter(a => a.category === 'custom').map(a => (
                           <option key={a.id} value={a.audio_url}>{a.label}</option>
                         ))}
                       </Select>
@@ -498,7 +498,7 @@ export default function Users() {
                         onChange={e => setForm(f => ({ ...f, custom_audio_pulang_url: e.target.value }))}
                       >
                         <option value="">Default (acak)</option>
-                        {audioLibrary.filter(a => a.category === 'pulang').map(a => (
+                        {audioLibrary.filter(a => a.category === 'custom').map(a => (
                           <option key={a.id} value={a.audio_url}>{a.label}</option>
                         ))}
                       </Select>
@@ -510,9 +510,9 @@ export default function Users() {
                     </div>
                   </div>
                 </div>
-                {audioLibrary.length === 0 && (
+                {audioLibrary.filter(a => a.category === 'custom').length === 0 && (
                   <p className="text-xs text-yellow-600">
-                    Belum ada audio di Pustaka. Tambahkan dulu di Pengaturan → Audio.
+                    Belum ada audio kategori Custom di Pustaka. Upload dulu di Pengaturan → Audio.
                   </p>
                 )}
               </div>

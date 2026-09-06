@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase'
 import { QRScanner } from '../components/QRScanner'
 import { Spinner } from '../components/ui/spinner'
 import { useRoles, roleLabel, isStaffRole } from '../store/useRolesStore'
-import { playAudio, isLateCheckIn, resolveCheckInAudio, resolveCheckOutAudio } from '../utils/audioPlayer'
+import { playAudio, resolveCheckInAudio, resolveCheckOutAudio } from '../utils/audioPlayer'
 
 const CHECKOUT_MIN_GAP_MS = 5 * 60 * 1000
 const EARLY_CHECKOUT_HOUR = 17
@@ -37,11 +37,9 @@ export default function Scan() {
   const [locationId, setLocationId] = useState(() => localStorage.getItem('scan_location_id') || '')
   const [earlyCheckout, setEarlyCheckout] = useState(null) // { user, existingId, checkInAt }
   const [facingMode, setFacingMode] = useState('environment')
-  const [lateThreshold, setLateThreshold] = useState('08:00')
   const [specialAudioUrl, setSpecialAudioUrl] = useState(null)
   const [libraryMasuk, setLibraryMasuk] = useState([])
   const [libraryPulang, setLibraryPulang] = useState([])
-  const [libraryTelat, setLibraryTelat] = useState([])
   const lockRef = useRef(false)
 
   useEffect(() => {
@@ -60,20 +58,16 @@ export default function Scan() {
     })
   }, [])
 
-  // Threshold telat, audio hari spesial & pustaka audio — diam-diam pakai default kalau migration 016 belum jalan.
+  // Audio hari spesial & pustaka audio — diam-diam pakai default kalau migration 016/017 belum jalan.
   useEffect(() => {
-    supabase.from('app_settings').select('value').eq('key', 'late_threshold_time').maybeSingle()
-      .then(({ data, error }) => { if (!error && data?.value) setLateThreshold(data.value) })
-
     const today = format(new Date(), 'yyyy-MM-dd')
     supabase.from('special_audio_days').select('audio_url').eq('event_date', today).maybeSingle()
       .then(({ data, error }) => { if (!error && data?.audio_url) setSpecialAudioUrl(data.audio_url) })
 
-    supabase.from('audio_library').select('audio_url, category').then(({ data, error }) => {
+    supabase.from('audio_library').select('audio_url, category, direction').then(({ data, error }) => {
       if (error || !data) return
-      setLibraryMasuk(data.filter(a => a.category === 'masuk').map(a => a.audio_url))
-      setLibraryPulang(data.filter(a => a.category === 'pulang').map(a => a.audio_url))
-      setLibraryTelat(data.filter(a => a.category === 'telat').map(a => a.audio_url))
+      setLibraryMasuk(data.filter(a => a.category === 'default' && a.direction === 'masuk').map(a => a.audio_url))
+      setLibraryPulang(data.filter(a => a.category === 'default' && a.direction === 'pulang').map(a => a.audio_url))
     })
   }, [])
 
@@ -163,12 +157,10 @@ export default function Scan() {
         }
 
         const checkInDate = new Date()
-        const late = isLateCheckIn(checkInDate, lateThreshold)
         setResult({ type: 'success', user, greeting: getGreeting(checkInDate) })
         setScanState('success')
         playAudio(resolveCheckInAudio({
-          specialAudioUrl, isLate: late, customAudioUrl: user.custom_audio_masuk_url,
-          libraryMasuk, libraryTelat,
+          specialAudioUrl, customAudioUrl: user.custom_audio_masuk_url, libraryMasuk,
         }))
         finish(5000)
         return
@@ -226,7 +218,7 @@ export default function Scan() {
         lockRef.current = false
       }, 2500)
     }
-  }, [locationId, lateThreshold, specialAudioUrl, libraryMasuk, libraryPulang, libraryTelat])
+  }, [locationId, specialAudioUrl, libraryMasuk, libraryPulang])
 
   const handleReasonSelect = useCallback(async (reason) => {
     if (!earlyCheckout) return

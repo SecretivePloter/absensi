@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
-import { Plus, Trash2, Music, Play, Clock, Library } from 'lucide-react'
+import { Plus, Trash2, Music, Play, Library, Pencil } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { playAudio } from '../utils/audioPlayer'
 import { Button } from '../components/ui/button'
@@ -14,41 +14,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Spinner } from '../components/ui/spinner'
 import { useToast } from '../components/ui/toast'
 
-const CATEGORY_LABEL = { masuk: 'Datang', pulang: 'Pulang', telat: 'Telat', event: 'Event' }
-const emptyTrackForm = { label: '', category: 'masuk' }
+const CATEGORY_LABEL = { default: 'Default', event: 'Event', custom: 'Custom' }
+const DIRECTION_LABEL = { masuk: 'Masuk', pulang: 'Pulang' }
+const trackBadgeLabel = (t) => t.category === 'default'
+  ? `Default · ${DIRECTION_LABEL[t.direction] || '?'}`
+  : (CATEGORY_LABEL[t.category] || t.category)
+
+const emptyTrackForm = { label: '', category: 'default', direction: 'masuk' }
 const emptyDayForm = { event_date: '', audio_id: '', label: '' }
 
 export function AudioManager() {
   const toast = useToast()
 
-  // ---- Threshold telat ----
-  const [lateThreshold, setLateThreshold] = useState('08:00')
-  const [savingThreshold, setSavingThreshold] = useState(false)
-
-  const fetchThreshold = useCallback(async () => {
-    const { data } = await supabase.from('app_settings').select('value').eq('key', 'late_threshold_time').maybeSingle()
-    if (data?.value) setLateThreshold(data.value)
-  }, [])
-
-  useEffect(() => { fetchThreshold() }, [fetchThreshold])
-
-  const handleSaveThreshold = async () => {
-    setSavingThreshold(true)
-    try {
-      const { error } = await supabase.from('app_settings').upsert({ key: 'late_threshold_time', value: lateThreshold })
-      if (error) throw error
-      toast({ title: 'Jam telat disimpan', description: `Absen masuk setelah ${lateThreshold} akan pakai audio telat`, variant: 'success' })
-    } catch (err) {
-      toast({ title: 'Gagal menyimpan', description: err.message, variant: 'error' })
-    } finally {
-      setSavingThreshold(false)
-    }
-  }
-
   // ---- Pustaka Audio (upload sekali, dipakai berulang lewat selector) ----
   const [tracks, setTracks] = useState([])
   const [loadingTracks, setLoadingTracks] = useState(true)
   const [trackFormOpen, setTrackFormOpen] = useState(false)
+  const [editingTrack, setEditingTrack] = useState(null)
   const [trackForm, setTrackForm] = useState(emptyTrackForm)
   const [trackFile, setTrackFile] = useState(null)
   const [savingTrack, setSavingTrack] = useState(false)
@@ -64,7 +46,15 @@ export function AudioManager() {
   useEffect(() => { fetchTracks() }, [fetchTracks])
 
   const openAddTrack = () => {
+    setEditingTrack(null)
     setTrackForm(emptyTrackForm)
+    setTrackFile(null)
+    setTrackFormOpen(true)
+  }
+
+  const openEditTrack = (t) => {
+    setEditingTrack(t)
+    setTrackForm({ label: t.label, category: t.category, direction: t.direction || 'masuk' })
     setTrackFile(null)
     setTrackFormOpen(true)
   }
@@ -92,29 +82,38 @@ export function AudioManager() {
       toast({ title: 'Isi label/judul audio dulu', variant: 'error' })
       return
     }
-    if (!trackFile) {
+    if (!editingTrack && !trackFile) {
       toast({ title: 'Pilih file audio dulu', variant: 'error' })
       return
     }
     setSavingTrack(true)
     try {
-      const ext = trackFile.name.split('.').pop()?.toLowerCase() || 'mp3'
-      const path = `library/${crypto.randomUUID()}.${ext}`
-      const { error: uploadErr } = await supabase.storage.from('audio').upload(path, trackFile, {
-        cacheControl: '3600',
-        contentType: trackFile.type,
-      })
-      if (uploadErr) throw new Error(`Upload audio gagal: ${uploadErr.message}`)
-      const { data: urlData } = supabase.storage.from('audio').getPublicUrl(path)
-
-      const { error } = await supabase.from('audio_library').insert({
+      const payload = {
         label: trackForm.label.trim(),
         category: trackForm.category,
-        audio_url: urlData.publicUrl,
-      })
-      if (error) throw error
+        direction: trackForm.category === 'default' ? trackForm.direction : null,
+      }
 
-      toast({ title: 'Berhasil', description: 'Audio ditambahkan ke pustaka', variant: 'success' })
+      if (editingTrack) {
+        // Edit metadata saja — file audio tidak diganti.
+        const { error } = await supabase.from('audio_library').update(payload).eq('id', editingTrack.id)
+        if (error) throw error
+        toast({ title: 'Berhasil', description: 'Audio diperbarui', variant: 'success' })
+      } else {
+        const ext = trackFile.name.split('.').pop()?.toLowerCase() || 'mp3'
+        const path = `library/${crypto.randomUUID()}.${ext}`
+        const { error: uploadErr } = await supabase.storage.from('audio').upload(path, trackFile, {
+          cacheControl: '3600',
+          contentType: trackFile.type,
+        })
+        if (uploadErr) throw new Error(`Upload audio gagal: ${uploadErr.message}`)
+        const { data: urlData } = supabase.storage.from('audio').getPublicUrl(path)
+
+        const { error } = await supabase.from('audio_library').insert({ ...payload, audio_url: urlData.publicUrl })
+        if (error) throw error
+        toast({ title: 'Berhasil', description: 'Audio ditambahkan ke pustaka', variant: 'success' })
+      }
+
       setTrackFormOpen(false)
       fetchTracks()
     } catch (err) {
@@ -200,29 +199,6 @@ export function AudioManager() {
   return (
     <>
       <div className="space-y-8 max-w-2xl">
-        {/* Threshold telat */}
-        <div className="space-y-3">
-          <div>
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <Clock className="h-5 w-5" /> Jam Batas Telat
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Kalau absen masuk melewati jam ini, audio kategori "Telat" dari pustaka akan diputar (kalau ada).
-              Ini hanya menentukan bunyi, tidak memengaruhi data absensi atau laporan.
-            </p>
-          </div>
-          <div className="flex items-end gap-2">
-            <div className="space-y-1.5">
-              <Label>Jam</Label>
-              <Input type="time" value={lateThreshold} onChange={e => setLateThreshold(e.target.value)} className="w-32" />
-            </div>
-            <Button onClick={handleSaveThreshold} disabled={savingThreshold}>
-              {savingThreshold ? <Spinner size="sm" className="mr-2" /> : null}
-              Simpan
-            </Button>
-          </div>
-        </div>
-
         {/* Pustaka Audio */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -232,8 +208,13 @@ export function AudioManager() {
               </h1>
               <p className="text-muted-foreground text-sm mt-1">
                 Upload sekali di sini, lalu pilih lewat selector di profil user atau audio hari spesial.
-                Kategori "Datang"/"Pulang" juga otomatis ikut variasi acak di kiosk scan.
+                Kategori & label bisa diubah kapan saja lewat tombol edit — tidak terkunci sejak upload.
               </p>
+              <ul className="text-xs text-muted-foreground mt-2 space-y-0.5 list-disc list-inside">
+                <li><strong>Default</strong> — ikut variasi acak di kiosk scan (pisah arah Masuk/Pulang).</li>
+                <li><strong>Event</strong> — bisa dipilih untuk Audio Hari Spesial di bawah.</li>
+                <li><strong>Custom</strong> — bisa dipilih sebagai audio pribadi per user (halaman Pengguna).</li>
+              </ul>
             </div>
             <Button size="sm" onClick={openAddTrack}>
               <Plus className="h-4 w-4 mr-1.5" /> Upload
@@ -251,12 +232,15 @@ export function AudioManager() {
                       <Music className="h-4 w-4 text-muted-foreground shrink-0" />
                       <div className="min-w-0">
                         <p className="font-medium truncate">{t.label}</p>
-                        <Badge variant="outline" className="text-[10px]">{CATEGORY_LABEL[t.category] || t.category}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{trackBadgeLabel(t)}</Badge>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button variant="ghost" size="icon" onClick={() => playAudio(t.audio_url)} title="Dengarkan">
                         <Play className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => openEditTrack(t)} title="Edit label/kategori">
+                        <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost" size="icon"
@@ -335,25 +319,27 @@ export function AudioManager() {
         </div>
       </div>
 
-      {/* Dialog: Upload ke Pustaka */}
+      {/* Dialog: Upload / Edit Pustaka */}
       <Dialog open={trackFormOpen} onClose={() => setTrackFormOpen(false)}>
         <DialogContent onClose={() => setTrackFormOpen(false)} className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Upload Audio ke Pustaka</DialogTitle>
+            <DialogTitle>{editingTrack ? 'Edit Audio' : 'Upload Audio ke Pustaka'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSaveTrack}>
             <div className="p-6 pt-2 space-y-4">
-              <div className="space-y-2">
-                <Label>File Audio *</Label>
-                <Input type="file" accept="audio/*" onChange={handleTrackFileChange} className="cursor-pointer file:cursor-pointer" required />
-                <p className="text-xs text-muted-foreground">{trackFile ? trackFile.name : 'MP3, maksimal 3 MB'}</p>
-              </div>
+              {!editingTrack && (
+                <div className="space-y-2">
+                  <Label>File Audio *</Label>
+                  <Input type="file" accept="audio/*" onChange={handleTrackFileChange} className="cursor-pointer file:cursor-pointer" required />
+                  <p className="text-xs text-muted-foreground">{trackFile ? trackFile.name : 'MP3, maksimal 3 MB'}</p>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Label / Judul *</Label>
                 <Input
                   value={trackForm.label}
                   onChange={e => setTrackForm(f => ({ ...f, label: e.target.value }))}
-                  placeholder="mis. Semangat Pagi, Selamat Jalan, Gong Telat"
+                  placeholder="mis. Semangat Pagi, Selamat Jalan"
                   required
                 />
                 <p className="text-xs text-muted-foreground">Supaya gampang dikenali saat memilih di selector.</p>
@@ -361,18 +347,27 @@ export function AudioManager() {
               <div className="space-y-2">
                 <Label>Kategori *</Label>
                 <Select value={trackForm.category} onChange={e => setTrackForm(f => ({ ...f, category: e.target.value }))}>
-                  <option value="masuk">Datang (masuk)</option>
-                  <option value="pulang">Pulang</option>
-                  <option value="telat">Telat</option>
+                  <option value="default">Default (ikut variasi acak)</option>
                   <option value="event">Event / Hari Spesial</option>
+                  <option value="custom">Custom (audio pribadi user)</option>
                 </Select>
               </div>
+              {trackForm.category === 'default' && (
+                <div className="space-y-2">
+                  <Label>Arah *</Label>
+                  <Select value={trackForm.direction} onChange={e => setTrackForm(f => ({ ...f, direction: e.target.value }))}>
+                    <option value="masuk">Masuk (datang)</option>
+                    <option value="pulang">Pulang</option>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Menentukan pool acak mana yang memakai audio ini.</p>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setTrackFormOpen(false)}>Batal</Button>
               <Button type="submit" disabled={savingTrack}>
                 {savingTrack ? <Spinner size="sm" className="mr-2" /> : null}
-                {savingTrack ? 'Mengupload...' : 'Simpan'}
+                {savingTrack ? 'Menyimpan...' : 'Simpan'}
               </Button>
             </DialogFooter>
           </form>
@@ -427,7 +422,7 @@ export function AudioManager() {
                 >
                   <option value="">— Pilih audio —</option>
                   {tracks.map(t => (
-                    <option key={t.id} value={t.id}>{t.label} ({CATEGORY_LABEL[t.category] || t.category})</option>
+                    <option key={t.id} value={t.id}>{t.label} ({trackBadgeLabel(t)})</option>
                   ))}
                 </Select>
                 <p className="text-xs text-muted-foreground">Dipakai untuk absen masuk maupun pulang pada tanggal ini.</p>
