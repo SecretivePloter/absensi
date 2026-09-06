@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Edit2, QrCode, ToggleLeft, ToggleRight, Search, Trash2 } from 'lucide-react'
+import { Plus, Edit2, QrCode, ToggleLeft, ToggleRight, Search, Trash2, Play } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useRoles, useRolesStore, roleLabel, roleBadgeVariant, slugifyRole } from '../store/useRolesStore'
 import { Layout } from '../components/Layout'
@@ -15,9 +15,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Spinner } from '../components/ui/spinner'
 import { useToast } from '../components/ui/toast'
 import { exportUsersToExcel } from '../utils/exportExcel'
+import { playAudio } from '../utils/audioPlayer'
 import { FileSpreadsheet } from 'lucide-react'
 
-const emptyForm = { name: '', role: 'student', class_id: '', phone: '', qr_code: '', photo_url: '', nik: '' }
+const emptyForm = {
+  name: '', role: 'student', class_id: '', phone: '', qr_code: '', photo_url: '', nik: '',
+  custom_audio_masuk_url: '', custom_audio_pulang_url: '',
+}
 
 export default function Users() {
   const toast = useToast()
@@ -41,6 +45,7 @@ export default function Users() {
   const [saving, setSaving] = useState(false)
   const [photoFile, setPhotoFile] = useState(null)
   const [photoPreview, setPhotoPreview] = useState('')
+  const [audioLibrary, setAudioLibrary] = useState([])
   const [deleteConfirmUser, setDeleteConfirmUser] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -71,14 +76,17 @@ export default function Users() {
     return data.publicUrl
   }
 
+
   const fetchData = useCallback(async () => {
     setLoading(true)
-    const [{ data: usersData }, { data: classesData }] = await Promise.all([
+    const [{ data: usersData }, { data: classesData }, { data: audioData }] = await Promise.all([
       supabase.from('users').select('*, classes(name)').order('name'),
       supabase.from('classes').select('id, name').order('name'),
+      supabase.from('audio_library').select('id, label, audio_url, category').order('label'),
     ])
     setUsers(usersData || [])
     setClasses(classesData || [])
+    setAudioLibrary(audioData || [])
     setLoading(false)
   }, [])
 
@@ -111,6 +119,8 @@ export default function Users() {
       qr_code: u.qr_code,
       photo_url: u.photo_url || '',
       nik: u.nik || '',
+      custom_audio_masuk_url: u.custom_audio_masuk_url || '',
+      custom_audio_pulang_url: u.custom_audio_pulang_url || '',
     })
     setPhotoFile(null)
     setPhotoPreview(u.photo_url || '')
@@ -160,14 +170,34 @@ export default function Users() {
         qr_code: form.qr_code || crypto.randomUUID(),
         photo_url: photoUrl,
         nik: form.nik || null,
+        custom_audio_masuk_url: form.custom_audio_masuk_url || null,
+        custom_audio_pulang_url: form.custom_audio_pulang_url || null,
+      }
+      const hasCustomAudio = !!(payload.custom_audio_masuk_url || payload.custom_audio_pulang_url)
+
+      // custom_audio_masuk_url/custom_audio_pulang_url (migration 016) mungkin belum dijalankan
+      // di sisi DB — kalau kolomnya belum ada, retry tanpa field itu supaya field lain tetap tersimpan.
+      const withoutAudio = (obj) => {
+        const rest = { ...obj }
+        delete rest.custom_audio_masuk_url
+        delete rest.custom_audio_pulang_url
+        return rest
       }
 
       if (editing) {
-        const { error } = await supabase.from('users').update(payload).eq('id', editing.id)
+        let { error } = await supabase.from('users').update(payload).eq('id', editing.id)
+        if (error && hasCustomAudio) {
+          toast({ title: 'Audio pribadi belum bisa disimpan', description: 'Jalankan migration 016_audio_variasi.sql dulu di Supabase.', variant: 'error' })
+          error = (await supabase.from('users').update(withoutAudio(payload)).eq('id', editing.id)).error
+        }
         if (error) throw error
         toast({ title: 'Berhasil', description: 'Data pengguna diperbarui', variant: 'success' })
       } else {
-        const { error } = await supabase.from('users').insert({ ...payload, is_active: true })
+        let { error } = await supabase.from('users').insert({ ...payload, is_active: true })
+        if (error && hasCustomAudio) {
+          toast({ title: 'Audio pribadi belum bisa disimpan', description: 'Jalankan migration 016_audio_variasi.sql dulu di Supabase.', variant: 'error' })
+          error = (await supabase.from('users').insert({ ...withoutAudio(payload), is_active: true })).error
+        }
         if (error) throw error
         toast({ title: 'Berhasil', description: 'Pengguna baru ditambahkan', variant: 'success' })
       }
@@ -434,6 +464,57 @@ export default function Users() {
                     </button>
                   )}
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Audio Personal (opsional)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Pilih dari Pustaka Audio (Pengaturan → Audio). Kosongkan untuk pakai audio acak default.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground font-normal">Saat Datang</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Select
+                        value={form.custom_audio_masuk_url}
+                        onChange={e => setForm(f => ({ ...f, custom_audio_masuk_url: e.target.value }))}
+                      >
+                        <option value="">Default (acak)</option>
+                        {audioLibrary.filter(a => a.category === 'masuk').map(a => (
+                          <option key={a.id} value={a.audio_url}>{a.label}</option>
+                        ))}
+                      </Select>
+                      {form.custom_audio_masuk_url && (
+                        <button type="button" onClick={() => playAudio(form.custom_audio_masuk_url)} title="Dengarkan" className="text-primary hover:opacity-70 shrink-0">
+                          <Play className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground font-normal">Saat Pulang</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Select
+                        value={form.custom_audio_pulang_url}
+                        onChange={e => setForm(f => ({ ...f, custom_audio_pulang_url: e.target.value }))}
+                      >
+                        <option value="">Default (acak)</option>
+                        {audioLibrary.filter(a => a.category === 'pulang').map(a => (
+                          <option key={a.id} value={a.audio_url}>{a.label}</option>
+                        ))}
+                      </Select>
+                      {form.custom_audio_pulang_url && (
+                        <button type="button" onClick={() => playAudio(form.custom_audio_pulang_url)} title="Dengarkan" className="text-primary hover:opacity-70 shrink-0">
+                          <Play className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {audioLibrary.length === 0 && (
+                  <p className="text-xs text-yellow-600">
+                    Belum ada audio di Pustaka. Tambahkan dulu di Pengaturan → Audio.
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

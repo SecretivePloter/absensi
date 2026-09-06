@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BookOpen, MapPin, Shield, Plus, Trash2, Lock } from 'lucide-react'
+import { BookOpen, MapPin, Shield, Plus, Trash2, Lock, Music } from 'lucide-react'
 import { clsx } from 'clsx'
 import { supabase } from '../lib/supabase'
 import { Layout } from '../components/Layout'
@@ -12,6 +12,7 @@ import { Spinner } from '../components/ui/spinner'
 import { useToast } from '../components/ui/toast'
 import { ClassesManager } from './Classes'
 import { LocationsManager } from './Locations'
+import { AudioManager } from './AudioSettings'
 import { useRoles, useRolesStore, slugifyRole, BUILTIN_ROLES, isStaffRole } from '../store/useRolesStore'
 import { exportMassPayrollReport } from '../utils/exportPayroll'
 
@@ -303,6 +304,7 @@ const TABS = [
   { key: 'classes', label: 'Kelas', icon: BookOpen },
   { key: 'locations', label: 'Lokasi', icon: MapPin },
   { key: 'roles', label: 'Role', icon: Shield },
+  { key: 'audio', label: 'Audio', icon: Music },
   { key: 'export', label: 'Ekspor Massal', icon: Download },
 ]
 
@@ -338,6 +340,7 @@ export default function Settings() {
           {tab === 'classes' && <ClassesManager />}
           {tab === 'locations' && <LocationsManager />}
           {tab === 'roles' && <RolesManager />}
+          {tab === 'audio' && <AudioManager />}
           {tab === 'export' && <MassExportManager />}
         </div>
       </div>
