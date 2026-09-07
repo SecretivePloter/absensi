@@ -47,6 +47,19 @@ export default function Scan() {
     return () => clearInterval(t)
   }, [])
 
+  // Kiosk biasanya dibiarkan menyala berhari-hari tanpa direfresh manual, jadi tab bisa
+  // terus menjalankan bundle JS lama walau sudah ada deploy baru. Reload sendiri sekali
+  // sehari jam 03:00 (dini hari, dipastikan tidak ada yang lagi absen) supaya selalu pakai
+  // kode terbaru tanpa perlu campur tangan admin tiap kali ada update.
+  useEffect(() => {
+    if (scanState !== 'idle') return
+    if (now.getHours() !== 3) return
+    const todayStr = format(now, 'yyyy-MM-dd')
+    if (localStorage.getItem('scan_last_reload') === todayStr) return
+    localStorage.setItem('scan_last_reload', todayStr)
+    window.location.reload()
+  }, [now, scanState])
+
   useEffect(() => {
     supabase.from('locations').select('id, name').order('name').then(({ data }) => {
       setLocations(data || [])
