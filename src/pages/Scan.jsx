@@ -41,6 +41,7 @@ export default function Scan() {
   const [libraryMasuk, setLibraryMasuk] = useState([])
   const [libraryPulang, setLibraryPulang] = useState([])
   const lockRef = useRef(false)
+  const scannerRef = useRef(null)
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000)
@@ -51,13 +52,24 @@ export default function Scan() {
   // terus menjalankan bundle JS lama walau sudah ada deploy baru. Reload sendiri sekali
   // sehari jam 03:00 (dini hari, dipastikan tidak ada yang lagi absen) supaya selalu pakai
   // kode terbaru tanpa perlu campur tangan admin tiap kali ada update.
+  //
+  // PENTING: kamera HARUS dimatikan lewat scannerRef.stopCamera() dulu sebelum reload.
+  // Reload paksa saat stream kamera masih aktif bisa membuat kamera "terkunci" di level
+  // OS pada sebagian Android — baru lepas setelah restart browser, bukan cuma refresh.
   useEffect(() => {
     if (scanState !== 'idle') return
     if (now.getHours() !== 3) return
     const todayStr = format(now, 'yyyy-MM-dd')
     if (localStorage.getItem('scan_last_reload') === todayStr) return
     localStorage.setItem('scan_last_reload', todayStr)
-    window.location.reload()
+    ;(async () => {
+      try {
+        await scannerRef.current?.stopCamera?.()
+      } catch {
+        /* noop — tetap lanjut reload di bawah */
+      }
+      window.location.reload()
+    })()
   }, [now, scanState])
 
   useEffect(() => {
@@ -359,7 +371,7 @@ export default function Scan() {
             )}
           </p>
           <div className="rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex-1 min-h-0" style={{ maxHeight: '65dvh' }}>
-            <QRScanner onScan={handleScan} facingMode={facingMode} />
+            <QRScanner ref={scannerRef} onScan={handleScan} facingMode={facingMode} />
           </div>
           <p className="text-center text-[10px] sm:text-[11px] text-gray-600">
             Scan pertama = masuk · scan kedua = pulang

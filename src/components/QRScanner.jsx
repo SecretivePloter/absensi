@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 
 /**
@@ -11,8 +11,14 @@ import { Html5Qrcode } from 'html5-qrcode'
  * 3. Fall back to ANY available camera if preferred label not found.
  * 4. If the constraint-based start fails (OverconstrainedError on laptops),
  *    retry with the first available camera ID.
+ *
+ * Expose `stopCamera()` via ref: pada sebagian Android, navigasi/reload paksa
+ * SAAT stream kamera masih aktif bisa membuat kamera "terkunci" di level OS
+ * (baru lepas setelah restart browser, bukan cuma refresh halaman). Caller
+ * yang mau reload halaman (mis. auto-reload kiosk) WAJIB panggil ini dulu
+ * dan menunggu selesai sebelum memanggil window.location.reload().
  */
-export function QRScanner({ onScan, onError, facingMode = 'environment' }) {
+export const QRScanner = forwardRef(function QRScanner({ onScan, onError, facingMode = 'environment' }, ref) {
   const [hasCamera, setHasCamera] = useState(true)
   const [errorMsg, setErrorMsg] = useState(null)
   const onScanRef = useRef(onScan)
@@ -20,6 +26,39 @@ export function QRScanner({ onScan, onError, facingMode = 'environment' }) {
 
   const scannerRef = useRef(null)
   const containerIdRef = useRef('qr-reader-' + Math.random().toString(36).slice(2, 8))
+
+  // Dipakai baik oleh cleanup unmount maupun stopCamera() lewat ref — pastikan
+  // kamera benar-benar dilepas, bukan cuma diminta berhenti (lihat catatan di atas).
+  const stopScanner = async () => {
+    const scanner = scannerRef.current
+    try {
+      if (scanner?.getState && scanner.getState() === 2) {
+        await scanner.stop()
+      }
+      scanner?.clear?.()
+    } catch {
+      /* noop */
+    }
+    // Fallback keras: matikan langsung semua track video di container ini,
+    // jaga-jaga kalau Html5Qrcode gagal melepas stream dengan bersih.
+    try {
+      document.getElementById(containerIdRef.current)?.querySelectorAll('video').forEach((video) => {
+        video.srcObject?.getTracks?.().forEach((t) => t.stop())
+        video.srcObject = null
+      })
+    } catch {
+      /* noop */
+    }
+  }
+
+  useImperativeHandle(ref, () => ({
+    // Beri batas waktu supaya caller (mis. auto-reload) tidak nyangkut selamanya
+    // kalau untuk alasan apapun stopScanner() tidak pernah selesai.
+    stopCamera: () => Promise.race([
+      stopScanner(),
+      new Promise((resolve) => setTimeout(resolve, 1500)),
+    ]),
+  }), [])
 
   useEffect(() => {
     const containerId = containerIdRef.current
@@ -108,16 +147,7 @@ export function QRScanner({ onScan, onError, facingMode = 'environment' }) {
 
     return () => {
       active = false
-      try {
-        if (scanner.getState && scanner.getState() === 2) {
-          scanner.stop().then(() => scanner.clear()).catch(() => { })
-        } else {
-          scanner.clear?.()
-        }
-      } catch {
-        /* noop */
-      }
-      scannerRef.current = null
+      stopScanner().finally(() => { scannerRef.current = null })
     }
   }, [facingMode]) // restart scanner saat facingMode berubah
 
@@ -159,4 +189,4 @@ export function QRScanner({ onScan, onError, facingMode = 'environment' }) {
       `}</style>
     </div>
   )
-}
+})
