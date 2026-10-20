@@ -14,8 +14,13 @@ font, foto, kalibrator, dan pembuatan PDF memakai implementasi yang sama.
 - Kalibrasi per browser: localStorage key `ich_adj`
 - Kalibrasi bawaan deployment: `public/sertifikat/config.js`
 
-Generator tunggal tetap berfungsi tanpa Supabase. Tab Sinkronisasi Massal,
-Validasi, serta Arsip memakai client `src/lib/supabaseCert.js` yang sudah ada.
+Runtime standalone ini adalah satu-satunya implementasi generator yang dipakai
+oleh route admin. Implementasi React lama, client Supabase khusus sertifikat,
+serta folder prototipe lama telah dihapus agar tidak ikut bundle atau deployment.
+
+Generator tetap berfungsi tanpa Supabase. Fitur massal yang disertakan di dalam
+paket standalone bersifat opsional dan harus dikonfigurasi melalui
+`public/sertifikat/config.js` sebelum dipakai.
 
 Jangan mengaktifkan archive pada `public/sertifikat/config.js` dengan secret
 atau `service_role` key. Jika arsip standalone dibutuhkan, gunakan publishable

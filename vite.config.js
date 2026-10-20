@@ -4,9 +4,6 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   // Aset generator sudah versioned di public/sertifikat. Jangan timpa saat build.
   plugins: [react()],
-  optimizeDeps: {
-    include: ['jspdf'],
-  },
   build: {
     rollupOptions: {
       output: {
@@ -16,7 +13,6 @@ export default defineConfig({
           'vendor-ui': ['recharts', 'lucide-react', 'date-fns'],
           'vendor-qr': ['html5-qrcode', 'qrcode'],
           'vendor-xlsx': ['xlsx-js-style'],
-          'vendor-pdf': ['jspdf'],
         },
       },
     },
