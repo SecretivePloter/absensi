@@ -2,6 +2,17 @@
 
 Format: `[Tanggal] Versi / Sesi — Deskripsi`
 
+## [2026-10-20] Integrasi Generator Sertifikat Standalone
+
+- Tab **Generator Tunggal** pada `/sertifikat` sekarang memakai engine generator standalone yang sudah diuji melalui iframe same-origin.
+- Menambahkan preview dua halaman, unggah dan crop foto, unduh PDF, kalibrasi layout, font lokal, serta default kalibrasi resmi.
+- Runtime generator disimpan di `public/sertifikat/` dan tidak bergantung CDN atau Supabase untuk pembuatan PDF.
+- Sinkronisasi massal, validasi nomor, serta arsip Supabase yang sudah ada tetap dipertahankan.
+- Plugin Vite lama yang menimpa aset sertifikat saat build dihapus. Aset runtime sekarang versioned langsung di repository.
+- Build production dan smoke test browser generator, PDF, kalibrator, serta guard login berhasil.
+
+---
+
 ## [2026-08-04] Modul Absensi Event Belajar Malam
 
 ### ✨ Fitur Baru: Manajemen & Absensi Event

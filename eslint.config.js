@@ -5,7 +5,8 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Runtime generator berisi vendor browser minified dan diperlakukan sebagai aset statis.
+  globalIgnores(['dist', 'public/sertifikat/**']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

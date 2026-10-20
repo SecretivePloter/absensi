@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { SlidersHorizontal, Upload } from 'lucide-react';
-import SertifikatSingle from '../features/sertifikat/SertifikatSingle';
+import SertifikatGeneratorEmbed from '../features/sertifikat/SertifikatGeneratorEmbed';
 import SertifikatMass from '../features/sertifikat/SertifikatMass';
 import SertifikatValidator from '../features/sertifikat/SertifikatValidator';
 import SertifikatGallery from '../features/sertifikat/SertifikatGallery';
@@ -112,7 +112,7 @@ export default function Sertifikat() {
                     <TabsTrigger value="arsip">Arsip &amp; Galeri</TabsTrigger>
                 </TabsList>
                 <TabsContent value="single" className="border-none p-0">
-                    <SertifikatSingle />
+                    <SertifikatGeneratorEmbed />
                 </TabsContent>
                 <TabsContent value="massal" className="border-none p-0 mt-4">
                     <SertifikatMass />

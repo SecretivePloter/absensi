@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <link rel="icon" href="data:,">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Massal – Sertifikat Ichikara</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="./vendor/fonts.css" rel="stylesheet">
+
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0b0d14;
+            --surface: #141826;
+            --surface2: #1c2136;
+            --border: #2a3260;
+            --text: #c8d0e8;
+            --text-dim: #6b7499;
+            --accent: #6e8efb;
+            --green: #22c55e;
+            --red: #ef4444;
+            --orange: #f59e0b;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 30px;
+            line-height: 1.6;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        header h1 {
+            font-size: 20px;
+            color: #fff;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 16px;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .drop-area {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(42, 50, 96, 0.1);
+            transition: all 0.2s;
+        }
+
+        .drop-area:hover,
+        .drop-area.dragover {
+            border-color: var(--accent);
+            background: rgba(110, 142, 251, 0.1);
+        }
+
+        .drop-area p {
+            color: var(--text-dim);
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .drop-area input[type="file"] {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        .file-status {
+            margin-top: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--accent);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 14px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .btn:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+
+        .btn:disabled {
+            background: var(--surface2);
+            color: var(--text-dim);
+            border-color: var(--border);
+            cursor: not-allowed;
+        }
+
+        #logArea {
+            background: #000;
+            color: #a5b4fc;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 15px;
+            border: 1px solid var(--border);
+        }
+
+        /* Hidden area for rendering */
+        #renderContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 10px;
+            height: 10px;
+            opacity: 0.01;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: -999;
+        }
+
+        .nav-links {
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        .nav-links a {
+            color: var(--accent);
+            text-decoration: none;
+            margin-right: 15px;
+        }
+
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+
+        table.guide-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        table.guide-table th,
+        table.guide-table td {
+            border: 1px solid var(--border);
+            padding: 8px;
+            text-align: left;
+        }
+
+        table.guide-table th {
+            background: var(--surface2);
+            color: #fff;
+        }
+    </style>
+
+    <!-- External Libraries -->
+    <script src="./vendor/xlsx.full.min.js"></script>
+    <script src="./vendor/supabase.js"></script>
+    <script src="./config.js"></script>
+</head>
+
+<body>
+
+
+    <div class="card">
+        <div style="display: flex; flex-wrap:wrap; gap:12px; justify-content: space-between; align-items: flex-start;">
+            <h2>Panduan Format Excel</h2>
+            <button class="btn" style="width: auto; padding: 6px 12px; font-size: 12px; background: #22c55e;"
+                onclick="downloadTemplate()">⬇ Download Template .xlsx</button>
+        </div>
+        <p style="font-size:13px; color:var(--text-dim); margin-bottom:10px;">
+            Buat file Excel dengan kolom-kolom ber-header berikut (di baris pertama).
+            Format wajib persis agar terbaca sistem. Nilai 1 sampai 4 masing-masing 0–25. Nilai 5 (total 0–100) dihitung otomatis. Predikat dihitung dari total jika kolom Predikat kosong. Lama Belajar diisi jumlah jam.
+        </p>
+        <div style="overflow-x:auto"><table class="guide-table">
+            <tr>
+                <th>Nama</th>
+                <th>No Sertifikat</th>
+                <th>TTL</th>
+                <th>Level</th>
+                <th>Lama Belajar</th>
+                <th>Lulus/Tidak</th>
+                <th>Tanggal Selesai</th>
+                <th>Tanggal Terbit</th>
+                <th>Nilai 1</th>
+                <th>Nilai 2</th>
+                <th>Nilai 3</th>
+                <th>Nilai 4</th>
+                <th>Nilai 5</th>
+            </tr>
+        </table></div>
+        <p
+            style="font-size:13px; color:var(--orange); margin-top:10px; padding:10px; background:rgba(245, 158, 11, 0.1); border-radius:4px;">
+            <b>Aturan Foto:</b> Pilih beberapa foto sekaligus. Nama file foto harus sama dengan kolom <b>Nama</b> di
+            Excel (misal: "Budi Santoso.jpg"). Jika tidak ada/nama beda, foto akan kosong.
+        </p>
+    </div>
+
+    <div class="card">
+        <h2>1. Upload Data Excel (.xlsx / .csv)</h2>
+        <label class="drop-area" id="dropExcel" for="fileExcel">
+            <p>Klik atau Seret file Excel ke sini</p>
+            <input type="file" id="fileExcel" accept=".xlsx, .xls, .csv" />
+            <div class="file-status" id="statusExcel">Belum ada file Excel</div>
+        </label>
+    </div>
+
+    <div class="card">
+        <h2>2. Upload Pas Foto Siswa (Bisa banyak sekaligus)</h2>
+        <label class="drop-area" id="dropPhotos" for="filePhotos">
+            <p>Klik atau Seret semua file foto ke sini (.jpg, .png)</p>
+            <input type="file" id="filePhotos" multiple accept="image/*" />
+            <div class="file-status" id="statusPhotos">0 foto dimuat</div>
+        </label>
+    </div>
+
+    <div class="card">
+        <button class="btn" id="btnGenerate" disabled onclick="startMassGeneration()">Mulai Sinkronisasi Database
+            (Supabase)</button>
+        <div id="logArea">Server siap.\nMasukan file Excel dan Foto untuk memulai sinkronisasi.</div>
+    </div>
+
+    <script>
+        // ─────────────────────────────────────────────────────────
+        // State & Config
+        // ─────────────────────────────────────────────────────────
+        const FRONT_SVG = 'front.svg'
+        const BACK_SVG = 'back.svg'
+
+        let excelData = []
+        let excelVersion = 0
+        let photoFiles = {} // map: "Budi Santoso" -> File object
+
+
+        const PREDIKAT_RANGES = [
+            { min: 100, label: 'Sempurna' },
+            { min: 91, label: 'Amat Sangat Baik' },
+            { min: 86, label: 'Amat Baik' },
+            { min: 71, label: 'Baik' },
+            { min: 60, label: 'Cukup' },
+            { min: 0, label: 'Kurang' }
+        ]
+
+        function log(msg) {
+            const area = document.getElementById('logArea');
+            area.textContent += '\n' + msg;
+            area.scrollTop = area.scrollHeight;
+        }
+
+        // ─────────────────────────────────────────────────────────
+        // Initialization & Event Listeners
+        // ─────────────────────────────────────────────────────────
+        // ============================================
+        // SECURE INITIALIZATION (No DOMContentLoaded wrapper needed)
+        // ============================================
+
+        // Connect Upload Handlers
+        document.getElementById('fileExcel').addEventListener('change', handleExcelUpload);
+        document.getElementById('filePhotos').addEventListener('change', handlePhotosUpload);
+
+        // Connect Drag & Drop Handlers
+        const setupDragAndDrop = (dropId, inputId) => {
+            const dropZone = document.getElementById(dropId);
+            const input = document.getElementById(inputId);
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (input.disabled) return;
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    input.files = e.dataTransfer.files;
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        };
+
+        setupDragAndDrop('dropExcel', 'fileExcel');
+        setupDragAndDrop('dropPhotos', 'filePhotos');
+
+        function checkReady() {
+            const btn = document.getElementById('btnGenerate');
+            if (excelData.length > 0) btn.disabled = false;
+            else btn.disabled = true;
+        }
+
+        // Download Excel Template
+        function downloadTemplate() {
+            const data = [
+                ["Nama", "No Sertifikat", "TTL", "Level", "Lama Belajar", "Lulus/Tidak", "Tanggal Selesai", "Tanggal Terbit", "Nilai 1", "Nilai 2", "Nilai 3", "Nilai 4", "Nilai 5", "Predikat"],
+                ["Dimas Pratama", "ICH-2026-001", "Jakarta, 1 Januari 2000", "N5", "120", "LULUS", "30 Juni 2026", "25 Juni 2026", "22", "23", "24", "21", "90", ""],
+                ["Andi Kurniawan", "ICH-2026-002", "Surabaya, 5 Februari 2001", "N4", "240", "LULUS", "30 Juni 2026", "25 Juni 2026", "20", "21", "22", "23", "86", ""]
+            ]
+            const ws = XLSX.utils.aoa_to_sheet(data)
+            // Set column widths for better readability
+            ws['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 12 }]
+
+            const wb = XLSX.utils.book_new()
+            XLSX.utils.book_append_sheet(wb, ws, "Data_Siswa")
+            XLSX.writeFile(wb, "Template_Data_Siswa.xlsx")
+        }
+
+        // 1. Process Excel
+        async function handleExcelUpload(e) {
+            if (!e.target.files.length) return
+            const file = e.target.files[0]
+            const version = ++excelVersion
+            excelData = []; checkReady();
+            document.getElementById('statusExcel').innerText = `Excel dimuat: ${file.name}`
+            try {
+                if (file.size > 10 * 1024 * 1024) throw new Error('Ukuran Excel maksimal 10 MB.');
+                const data = await file.arrayBuffer()
+                if (version !== excelVersion) return;
+                const workbook = XLSX.read(data, { type: 'array', cellDates: true })
+                const firstSheetName = workbook.SheetNames[0]
+                const worksheet = workbook.Sheets[firstSheetName]
+                excelData = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false, dateNF: "yyyy-mm-dd" })
+                log(`Berhasil membaca Excel. Ditemukan ${excelData.length} baris data (siswa).`)
+                checkReady()
+            } catch (err) {
+                log('Gagal membaca Excel: ' + err.message)
+            }
+        }
+
+        // 2. Process Photos
+        function handlePhotosUpload(e) {
+            const files = e.target.files
+            if (!files.length) return
+            photoFiles = {}
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i]
+                // Clean extension to use solely basename as ID
+                if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) { log('Foto ditolak: ' + file.name + ' (JPG/PNG/WebP maksimal 10 MB).'); continue; }
+                const basename = file.name.replace(/\.[^/.]+$/, "").trim()
+                photoFiles[basename.toLowerCase()] = file
+            }
+            document.getElementById('statusPhotos').innerText = `${Object.keys(photoFiles).length} foto dimuat`
+            log(`${Object.keys(photoFiles).length} foto disiapkan dalam memori.`)
+        }
+
+        // ─────────────────────────────────────────────────────────
+        // Generation Pipeline
+        // ─────────────────────────────────────────────────────────
+        function getNominalValue(row, possibleKeys) {
+            for (const k of possibleKeys) {
+                if (row[k] !== undefined && row[k] !== null) return String(row[k]).trim()
+            }
+            return ""
+        }
+
+        // Convert array values to Predicate String
+        function calculatePredikat(n1, n2, n3, n4, n5) {
+            const scores = [n1, n2, n3, n4].map(v => Number(v)).filter(v => Number.isFinite(v))
+            if (scores.length === 0) return "" // No valid scores
+            const avg = scores.reduce((a, b) => a + b, 0)
+
+            for (const p of PREDIKAT_RANGES) {
+                if (avg >= p.min) return p.label
+            }
+            return "Kurang"
+        }
+
+        async function fileToDataURL(file) {
+            return new Promise((resolve) => {
+                if (!file) return resolve(null)
+                const reader = new FileReader()
+                reader.onload = e => resolve(e.target.result)
+                reader.readAsDataURL(file)
+            })
+        }
+
+        // Inisialisasi Supabase. Modul massal bersifat opsional dalam package standalone.
+        const packageArchive = window.ICHIKARA_CERTIFICATE_CONFIG?.archive;
+        const config = packageArchive?.url && packageArchive?.anonKey ? packageArchive : window.ICHIKARA_SUPABASE_CONFIG;
+        const certificateClient = window.supabase && config?.url && config?.anonKey
+            ? window.supabase.createClient(config.url, config.anonKey, { db: { schema: config.schema || 'ichikara' } })
+            : null;
+        if (!certificateClient) log('Mode massal nonaktif. Isi konfigurasi Supabase di config.js untuk mengaktifkan sinkronisasi database.');
+
+        async function startMassGeneration() {
+            if (!certificateClient) {
+                log('Sinkronisasi dibatalkan: konfigurasi Supabase belum diisi.');
+                return;
+            }
+            const btn = document.getElementById('btnGenerate');
+            if (btn.disabled) return;
+            btn.disabled = true;
+            document.getElementById('fileExcel').disabled = true; document.getElementById('filePhotos').disabled = true;
+            log('\nMemulai proses sinkronisasi ke Supabase...')
+
+            try {
+                let successCount = 0;
+                let failedCount = 0;
+
+                for (let i = 0; i < excelData.length; i++) {
+                    const row = excelData[i]
+                    let nama = getNominalValue(row, ['Nama'])
+                    if (!nama) continue;
+
+                    // Resolve Data
+                    const noSertif = getNominalValue(row, ['No Sertifikat', 'No_Sertifikat', 'Nomor Sertifikat'])
+                    const map = {
+                        'NAMA PESERTA': getNominalValue(row, ['Nama', 'Nama_Siswa']),
+                        'Nomor Sertifikat 2': noSertif,
+                        'Nomor Sertifikat 1': 'No.DK.01.03/278/IX/2024'
+                    }
+                    const ttl = getNominalValue(row, ['TTL', 'Tempat Tanggal Lahir'])
+                    const level = getNominalValue(row, ['Level'])
+                    const lama = getNominalValue(row, ['Lama Belajar', 'LamaWaktuBelajar'])
+                    const lulus = getNominalValue(row, ['Lulus/Tidak', 'Kelulusan', 'Status'])
+                    const selesai = getNominalValue(row, ['Tanggal Selesai', 'Tgl Selesai'])
+                    const terbit = getNominalValue(row, ['Tanggal Terbit', 'Tgl Terbit'])
+
+                    const n1 = getNominalValue(row, ['Nilai 1', 'Nilai1', 'N1'])
+                    const n2 = getNominalValue(row, ['Nilai 2', 'Nilai2', 'N2'])
+                    const n3 = getNominalValue(row, ['Nilai 3', 'Nilai3', 'N3'])
+                    const n4 = getNominalValue(row, ['Nilai 4', 'Nilai4', 'N4'])
+                    if (!noSertif.trim()) { log(`    Gagal ${nama}: nomor sertifikat wajib diisi.`); failedCount++; continue; }
+                    const scores = [n1, n2, n3, n4];
+                    if (scores.some(v => !v.trim() || !Number.isFinite(Number(v)) || Number(v) < 0 || Number(v) > 25)) {
+                        log(`    Gagal ${nama}: isi empat nilai masing-masing 0 sampai 25.`); failedCount++; continue;
+                    }
+                    const n5 = String(scores.reduce((sum, v) => sum + Number(v), 0));
+
+                    // Otomatis Predikat
+                    const predikat = getNominalValue(row, ['Predikat']).trim() || calculatePredikat(n1, n2, n3, n4)
+
+                    log(`[${i + 1}/${excelData.length}] Mengunggah data: ${nama} (${noSertif})`)
+
+                    const payload = {
+                        nomor: noSertif,
+                        nama_peserta: nama,
+                        ttl: ttl,
+                        level: level,
+                        lama: lama,
+                        predikat: predikat,
+                        n1: n1,
+                        n2: n2,
+                        n3: n3,
+                        n4: n4,
+                        n5: n5,
+                        lulus: lulus,
+                        tgl_selesai: selesai,
+                        tgl_terbit: terbit
+                    };
+
+                    // UPSERT data based on nomor sertifikat
+                    const { error } = await certificateClient
+                        .from('sertifikat')
+                        .upsert(payload, { onConflict: 'nomor' })
+
+                    if (error) {
+                        log(`    ❌ Gagal upload ${nama}: ${error.message}`)
+                        failedCount++;
+                    } else {
+                        successCount++;
+                        // Upload Photo
+                        const photoFile = photoFiles[nama.trim().toLowerCase()]
+                        if (photoFile) {
+                            try {
+                                const ext = photoFile.name.split('.').pop();
+                                const safeName = nama.replace(/[^\w\s-]/g, '_').trim();
+                                const safeNomor = noSertif.replace(/[^\w\s-]/g, '_').trim();
+                                const filePath = `${safeName}_${safeNomor}.${ext}`;
+
+                                log(`    📸 Mengunggah foto ${filePath}...`)
+                                const { error: storageErr } = await certificateClient
+                                    .storage
+                                    .from('ichikara_sertifikat_photos')
+                                    .upload(filePath, photoFile, { upsert: true })
+
+                                if (storageErr) log(`    ⚠️ Gagal upload foto: ${storageErr.message}`)
+                            } catch (e) {
+                                log(`    ⚠️ Gagal processing foto: ${e.message}`)
+                            }
+                        } else {
+                            log(`    ⚠️ Tidak ada foto bernama "${nama.trim()}" — data tersimpan tanpa pembaruan foto.`)
+                        }
+                    }
+                }
+
+                log(`\nSELESAI! Hasil Sinkronisasi:`)
+                log(`✅ Berhasil: ${successCount} data`)
+                if (failedCount > 0) log(`❌ Gagal: ${failedCount} data`)
+            } catch (err) {
+                log('ERROR SINKRONISASI: ' + err.stack)
+            } finally {
+                document.getElementById('fileExcel').disabled = false; document.getElementById('filePhotos').disabled = false;
+                btn.disabled = false
+            }
+        }
+
+    </script>
+</body>
+
+</html>

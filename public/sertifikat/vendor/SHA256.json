@@ -1,0 +1,18 @@
+{
+  "barlowcondensed-OFL.txt": "186d750eb496a4c17a76385f82be6aea2ac1cf2de074a811d63786cf374ea73f",
+  "barlowsemicondensed-OFL.txt": "186d750eb496a4c17a76385f82be6aea2ac1cf2de074a811d63786cf374ea73f",
+  "font-0.woff2": "0d85af813fc3ed87db0c6265515689b2eef5cbaf7aab17922528dfc95a2cd73f",
+  "font-1.woff2": "9ff9499736c5fad7db00815aafc939b3df67bdee87ce62fb04257fe167c151fd",
+  "font-2.woff2": "6098b66ce7d608dcea8c6a2eeacfdeeee5416e0e0c12a2318595d3dd8c5babef",
+  "font-3.woff2": "1b9aaa67369abb90fcfb123435e04566bd1e611348157853acb9c7c93a9531e1",
+  "fonts.css": "e0e3210e7c873a32f89584d002f5c0683fb109ab1c7d552f06e8edb3cf625d01",
+  "fonts.json": "fb725153cff1221cabb8b1f9fbc7c64d2314d06ff827269c7d1fb40686058214",
+  "jspdf-LICENSE": "dc388ec35ff463288cdde3588a36fd4ed12a45deff053243b37309acc9ef583b",
+  "jspdf.umd.min.js": "e6551fcdc32f09d6853b2c5126d18d01d9447e0da618a41a11ebeee0f6c20d54",
+  "librebodoni-OFL.txt": "7ce3bf8e8087bf7495a3e1ed2044e83439db990c778d61b128fd09b7876d0420",
+  "README.md": "c6891d4954a9a4d98f617c75c3a219372d04665068765eb0d6317cb5a4cfd130",
+  "supabase-LICENSE": "334dd6820e2eaeab2064e7c59001b810566728a28a41a7c1dbf69bbee17d0936",
+  "supabase.js": "6a1ecde5ec0661e80534122a495810d8046c2ae2dc270ef87a4b51df22e6e354",
+  "xlsx-LICENSE": "4d2a38ac35cda06a555c84074a819d413339cd3691b822cae50f8f322fe01f64",
+  "xlsx.full.min.js": "cc015130aa8521e7f088f88898eba949ccdcbfb38df0bd129b44b7273c3a6f41"
+}

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <link rel="icon" href="data:,">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generator Sertifikat – Ichikara</title>
+  <link rel="stylesheet" href="./vendor/fonts.css">
+  <script src="./vendor/jspdf.umd.min.js"></script>
+  <script async src="./vendor/supabase.js"></script>
+  <script src="./config.js"></script>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f3f4f6;
+      color: #111827;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: #1e1b4b;
+      color: #e0e7ff;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+    }
+
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: .01em;
+    }
+
+    /* ── Layout ── */
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Form panel ── */
+    .form-panel {
+      width: 340px;
+      min-width: 340px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+
+    .form-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+    }
+
+    .form-actions {
+      padding: 14px 18px;
+      border-top: 1px solid #e5e7eb;
+      background: #fafafa;
+    }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #6366f1;
+      margin: 18px 0 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .section-title:first-child {
+      margin-top: 0;
+    }
+
+    /* ── Field ── */
+    .field {
+      margin-bottom: 11px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 3px;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      padding: 7px 9px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #111;
+      background: #fff;
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    .field input:focus,
+    .field select:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, .18);
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* ── Photo upload ── */
+    .photo-drop {
+      border: 2px dashed #d1d5db;
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+
+    .photo-drop:hover,
+    .photo-drop.dragover {
+      border-color: #6366f1;
+      background: #eef2ff;
+    }
+
+    .photo-drop input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .photo-drop-icon {
+      color: #9ca3af;
+    }
+
+    .photo-drop-label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 6px;
+    }
+
+    .photo-drop-sub {
+      font-size: 11px;
+      color: #d1d5db;
+      margin-top: 2px;
+    }
+
+    .photo-thumb {
+      width: 72px;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #e5e7eb;
+      margin: 8px auto 0;
+      display: none;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 9px 16px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background .15s, opacity .15s;
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #4f46e5;
+      color: #fff;
+      width: 100%;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #4338ca;
+    }
+
+    .btn-success {
+      background: #059669;
+      color: #fff;
+      padding: 8px 14px;
+      font-size: 12px;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background: #047857;
+    }
+
+    /* ── Preview panel ── */
+    .preview-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: #f3f4f6;
+    }
+
+    .preview-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .preview-top h2 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .page-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
+
+    .svg-card {
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, .1);
+      overflow: hidden;
+      margin-bottom: 22px;
+    }
+
+    .svg-card svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      color: #9ca3af;
+      text-align: center;
+      gap: 12px;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+    }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, .4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .5s linear infinite;
+    }
+
+    .spinner-dark {
+      border-color: rgba(79, 70, 229, .3);
+      border-top-color: #4f46e5;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 9999;
+      animation: toastIn .25s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+    }
+
+    .toast-ok {
+      background: #059669;
+    }
+
+    .toast-err {
+      background: #dc2626;
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .preview-panel { min-width: 0; }
+    .preview-top { flex-wrap: wrap; gap: 12px; }
+    @media (max-width: 700px) {
+      body { height: auto; overflow: auto; }
+      .layout { flex-direction: column; height: auto !important; overflow: visible; }
+      .form-panel { width: 100%; min-width: 0; overflow: visible; }
+      .form-scroll { overflow: visible; }
+      .preview-panel { padding: 16px; overflow: visible; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="layout" style="height: 100vh;">
+
+    <!-- ── Form Panel ── -->
+    <div class="form-panel">
+      <div class="form-scroll">
+
+        <div class="section-title">Data Peserta</div>
+
+        <div class="field">
+          <label>Nama Peserta <span style="color:#dc2626">*</span></label>
+          <input id="f-nama" type="text" placeholder="Nama lengkap">
+        </div>
+        <div class="field">
+          <label>Nomor Sertifikat</label>
+          <input id="f-nomor" type="text" placeholder="contoh: ICH-2026-001">
+        </div>
+        <div class="field">
+          <label>Tempat &amp; Tanggal Lahir</label>
+          <input id="f-lahir" type="text" placeholder="contoh: Jakarta, 1 Januari 2000">
+        </div>
+        <div class="field">
+          <label>Level Bahasa Jepang</label>
+          <input id="f-level" type="text" placeholder="contoh: N5 (Dasar)">
+        </div>
+        <div class="field">
+          <label>Predikat</label>
+          <select id="f-predikat">
+            <option value="">— Pilih predikat —</option>
+            <option value="Sempurna">Sempurna</option>
+            <option value="Amat Sangat Baik">Amat Sangat Baik</option>
+            <option value="Amat Baik">Amat Baik</option>
+            <option value="Baik">Baik</option>
+            <option value="Cukup">Cukup</option>
+            <option value="Kurang">Kurang</option>
+          </select>
+        </div>
+
+        <div class="section-title">Kursus</div>
+
+        <div class="field">
+          <label>Lama Belajar (jam)</label>
+          <input id="f-lama" type="text" placeholder="contoh: 120">
+        </div>
+        <div class="field">
+          <label>Hasil Kelulusan</label>
+          <select id="f-lulus">
+            <option value="">— Pilih —</option>
+            <option value="LULUS">Lulus</option>
+            <option value="TIDAK LULUS">Tidak Lulus</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Tanggal Selesai Kursus</label>
+          <input id="f-selesai" type="date">
+        </div>
+        <div class="field">
+          <label>Tanggal Terbit Sertifikat</label>
+          <input id="f-terbit" type="date">
+        </div>
+
+        <div class="section-title">Nilai (maks. 25 per kategori)</div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Tata Bahasa (文法)</label>
+            <input id="f-n1" type="text" placeholder="–">
+          </div>
+          <div class="field">
+            <label>Membaca (読解)</label>
+            <input id="f-n2" type="text" placeholder="–">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Percakapan (会話)</label>
+            <input id="f-n3" type="text" placeholder="–">
+          </div>
+          <div class="field">
+            <label>Kehadiran (出席率)</label>
+            <input id="f-n4" type="text" placeholder="–">
+          </div>
+        </div>
+        <div class="field">
+          <label>Total Nilai (maks. 100)</label>
+          <input id="f-n5" type="text" placeholder="–">
+        </div>
+
+        <div class="section-title">Foto Peserta</div>
+
+        <div class="photo-drop" id="photoDrop">
+          <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp">
+          <svg class="photo-drop-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.5" stroke-linecap="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+          </svg>
+          <div class="photo-drop-label" id="photoLabel">Klik atau seret foto peserta</div>
+          <div class="photo-drop-sub">JPG/PNG/WebP, maks. 10 MB. Dipotong ke tengah frame.</div>
+          <img id="photoThumb" class="photo-thumb" alt="preview">
+        </div>
+
+        <button type="button" class="btn" id="removePhoto">Hapus foto</button>
+      </div><!-- /form-scroll -->
+
+      <div class="form-actions">
+        <button class="btn btn-primary" id="generateBtn" onclick="generatePreview()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="1 4 1 10 7 10" />
+            <path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
+          </svg>
+          Generate Preview
+        </button>
+        <button type="button" onclick="fillTestData()"
+          style="margin-top:8px;width:100%;padding:7px;border:1px dashed #a5b4fc;border-radius:6px;background:transparent;color:#818cf8;font-size:12px;cursor:pointer;transition:background .15s"
+          onmouseover="this.style.background='rgba(99,102,241,.08)'" onmouseout="this.style.background='transparent'">
+          ⚡ Isi Data Contoh (Testing)
+        </button>
+      </div>
+    </div><!-- /form-panel -->
+
+    <!-- ── Preview Panel ── -->
+    <div class="preview-panel">
+      <div class="preview-top">
+        <h2>Preview Sertifikat</h2>
+        <button class="btn btn-success" id="downloadBtn" onclick="downloadPDF()" disabled>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+          </svg>
+          Download PDF
+        </button>
+      </div>
+
+      <p id="statusMessage" role="status" aria-live="polite" style="margin-bottom:12px;font-size:13px"></p>
+      <div id="previewContent">
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1"
+            stroke-linecap="round">
+            <rect x="5" y="2" width="14" height="20" rx="2" />
+            <path d="M9 7h6M9 11h6M9 15h4" />
+          </svg>
+          <p>Isi form lalu klik <strong>Generate Preview</strong></p>
+        </div>
+      </div>
+    </div><!-- /preview-panel -->
+
+  </div><!-- /layout -->
+
+  <script src="./certificate-core.js"></script>
+  <script src="./generator.js"></script>
+</body>
+
+</html>

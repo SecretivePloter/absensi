@@ -2,14 +2,13 @@
 <html lang="id">
 
 <head>
+  <link rel="icon" href="data:,">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Penyesuai Tata Letak Sertifikat – Ichikara</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Barlow+Semi+Condensed:ital,wght@0,400;0,700;1,400&family=Libre+Bodoni:ital,wght@0,400;0,700;1,400&display=swap"
-    rel="stylesheet">
+  <link href="./vendor/fonts.css" rel="stylesheet">
   <style>
     *,
     *::before,
@@ -426,6 +425,17 @@
       background: var(--border);
       border-radius: 3px;
     }
+    header { flex-wrap: wrap; }
+    #preview-area { min-width: 0; }
+    #svg-wrapper { width: 100%; }
+    #status-msg { white-space: normal; }
+    @media (max-width: 700px) {
+      body { height: auto; overflow: auto; }
+      main { flex-direction: column; overflow: visible; }
+      #panel { width: 100%; min-width: 0; }
+      #preview-area { padding: 12px; }
+      #panel-scroll { overflow: visible; }
+    }
   </style>
 </head>
 
@@ -519,6 +529,8 @@
     </div><!-- /panel -->
   </main>
 
+  <script src="./config.js"></script>
+  <script src="./certificate-core.js"></script>
   <script>
     // ─────────────────────────────────────────────────────────────────
     // Constants
@@ -533,8 +545,8 @@
       'Nomor Sertifikat 1': 'ICH-2026-001',
       'Tempat dan Tanggal Lahir Peserta': 'Jakarta, 1 Januari 2000',
       'Level Bahasa Jepang': 'N5 (Dasar)',
-      'predikat': 'Sangat Amat Baik',
-      'lama Waktu Belajar': '6 bulan',
+      'predikat': 'Amat Baik',
+      'lama Waktu Belajar': '120',
       'lulus/ tidak lulus': 'Lulus',
       'Tanggal Selesai Kursus': '30 Juni 2026',
       'Tanggal terbit Sertifikat': '25 Juni 2026',
@@ -544,7 +556,7 @@
       'NAMA': 'NAMA PESERTA',
       'Tanggal terbit sertifikat': '25 Juni 2026',
       'lulus/tidak': 'Lulus',
-      'nilai1': '85', 'nilai2': '80', 'nilai3': '90', 'nilai4': '88', 'nilai5': '87',
+      'nilai1': '22', 'nilai2': '20', 'nilai3': '23', 'nilai4': '24', 'nilai5': '89',
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -556,81 +568,17 @@
     let selRectEl = null      // blue selection rect overlay
 
     // adjustments: { front: { "42": {label,dx,dy,scale}, … }, back: {…} }
-    let adjustments = { front: {}, back: {} }
-    try {
-      const s = JSON.parse(localStorage.getItem(LS_KEY));
-      if (s) {
-        adjustments = s;
-        // MIGRATION: Rescue old calibration data that used DUMMY texts as keys instead of raw placeholders
-        const mig = {
-          "t:Lahir di Jakarta, 1 Januari 2000Telah me": "t:Lahir di {{Tempat dan Tanggal Lahir Pe",
-          "t:NAMA PESERTA": "t:{{NAMA PESERTA}}",
-          "t:ICH-2026-001__1": "t:{{Nomor Sertifikat 1}}",
-          "t:ICH-2026-001": "t:{{Nomor Sertifikat 2}}",
-          "t:N5 (Dasar)": "t:{{Level Bahasa Jepang}}",
-          "t:Sangat Amat Baik": "t:{{predikat}}",
-          "t:6 bulan": "t:{{lama Waktu Belajar}}",
-          "t:Lulus": "t:{{lulus/ tidak lulus}}",
-          "t:30 Juni 2026": "t:{{Tanggal Selesai Kursus}}",
-          "t:25 Juni 2026": "t:{{Tanggal terbit Sertifikat}}"
-        }
-        let migrated = false;
-
-        ['front', 'back'].forEach(page => {
-          if (adjustments[page]) {
-            Object.keys(adjustments[page]).forEach(k => {
-              if (mig[k]) {
-                adjustments[page][mig[k]] = adjustments[page][k];
-                delete adjustments[page][k];
-                migrated = true;
-              } else if (page === 'back' && k === "t:25 Juni 2026") {
-                adjustments[page]["t:{{Tanggal terbit sertifikat}}"] = adjustments[page][k];
-                delete adjustments[page][k];
-                migrated = true;
-              } else if (page === 'back' && k === "t:NAMA PESERTA") {
-                adjustments[page]["t:{{NAMA}}"] = adjustments[page][k];
-                delete adjustments[page][k];
-                migrated = true;
-              } else if (page === 'back' && k === "t:Lulus") {
-                adjustments[page]["t:{{lulus/tidak}}"] = adjustments[page][k];
-                delete adjustments[page][k];
-                migrated = true;
-              }
-            })
-          }
-        });
-
-        if (migrated) localStorage.setItem(LS_KEY, JSON.stringify(adjustments));
-      }
-    } catch { }
+    let adjustments = CertificateCore.readAdjustments();
+    let loadVersion = 0;
 
     // ─────────────────────────────────────────────────────────────────
     // SVG helpers — identical to index.html
     // ─────────────────────────────────────────────────────────────────
-    function preProcessSVG(svgText) {
-      svgText = svgText.replace(
-        /\{\{ A<\/text>(\s*<text\b[^>]*>) \}\}<\/text>(\s*<text\b[^>]*>)mat Baik(<\/text>)/,
-        `{{ Amat Baik }}</text>$1</text>$2$3`
-      )
-      svgText = svgText.replace(
-        /\{\{([^<}]*)<\/text>(\s*<text\b[^>]*>)\s*([^<}]*\}\})/g,
-        (_, p1, tag, p2) => `</text>${tag}{{${p1}${p2}`
-      )
-      return svgText
-    }
+    function preProcessSVG(s) { return CertificateCore.preProcessSVG(s); }
 
-    function parseSVG(text) {
-      return new DOMParser().parseFromString(text, 'image/svg+xml')
-    }
+    function parseSVG(s) { return CertificateCore.parseSVG(s); }
 
-    function patchFonts(doc) {
-      const style = doc.querySelector('style')
-      if (!style) return
-      let css = style.textContent
-      css = css.replace(/font-family:'Barlow Condensed SemiBold'/g, "font-family:'Barlow Condensed'")
-      css = css.replace(/font-family:'Barlow Condensed Medium'/g, "font-family:'Barlow Condensed'")
-      style.textContent = css
-    }
+    function patchFonts(d) { return CertificateCore.patchFonts(d); }
 
     function hideWatermarks(doc) {
       const mainG = doc.querySelector('g[id^="_"]')
@@ -643,90 +591,13 @@
       }
     }
 
-    async function patchImagePaths(doc, imgFolder, prefix) {
-      const NS = 'http://www.w3.org/1999/xlink'
-      const re = prefix ? new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) : null
-      const tasks = []
-      doc.querySelectorAll('image').forEach(el => {
-        const href = el.getAttributeNS(NS, 'href') || el.getAttribute('xlink:href') || el.getAttribute('href') || ''
-        if (href.startsWith('data:')) return
-        let name = href.replace(/\\/g, '/').split('/').pop()
-        if (re) name = name.replace(re, '')
-        const url = imgFolder + name
-        tasks.push(
-          fetch(url).then(r => r.blob()).then(b => new Promise(res => {
-            const fr = new FileReader()
-            fr.onload = e => {
-              el.setAttributeNS(NS, 'xlink:href', e.target.result)
-              el.setAttribute('href', e.target.result)
-              res()
-            }
-            fr.readAsDataURL(b)
-          })).catch(() => { el.setAttributeNS(NS, 'xlink:href', url); el.setAttribute('href', url) })
-        )
-      })
-      await Promise.all(tasks)
-    }
+    function patchImagePaths(d, folder, prefix) { return CertificateCore.patchImagePaths(d, folder, prefix); }
 
-    function replacePlaceholders(doc, map) {
-      const NS = 'http://www.w3.org/2000/svg'
-
-      // Keys that have variable-length values → apply center-anchor
-      const centerKeys = new Set([
-        'NAMA PESERTA', 'NAMA', 'predikat', 'Level Bahasa Jepang',
-        'lama Waktu Belajar', 'lulus/ tidak lulus', 'lulus/tidak',
-        'Nomor Sertifikat 1', 'Nomor Sertifikat 2',
-        'Tempat dan Tanggal Lahir Peserta',
-      ])
-
-      for (const el of doc.getElementsByTagNameNS(NS, 'text')) {
-        if (el.closest('defs')) continue
-        for (const [key, val] of Object.entries(map)) {
-          const re = new RegExp(`\\{\\{\\s*${key.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&')}\\s*\\}\\}`, 'gi')
-          const nodes = []
-          el.childNodes.forEach(n => { if (n.nodeType === 3) nodes.push(n) })
-          el.querySelectorAll('tspan').forEach(t => t.childNodes.forEach(n => { if (n.nodeType === 3) nodes.push(n) }))
-
-          let matched = false
-          nodes.forEach(n => {
-            if (re.test(n.textContent)) {
-              n.textContent = n.textContent.replace(re, val)
-              matched = true
-            }
-          })
-
-          if (matched && centerKeys.has(key)) {
-            const xAttr = parseFloat(el.getAttribute('x') || 0)
-            if (!isNaN(xAttr)) {
-              el.setAttribute('text-anchor', 'middle')
-              el.querySelectorAll('tspan').forEach(t => {
-                if (t.hasAttribute('x')) t.setAttribute('x', xAttr)
-              })
-            }
-          }
-        }
-      }
-    }
+    function replacePlaceholders(d, map) { return CertificateCore.replacePlaceholders(d, map); }
 
     // Assign a SEMANTIC adj-id (content-based) so saved adjustments survive
     // SVG regeneration. Same logic as index.html assignAdjIds().
-    function assignAdjIds(doc) {
-      const seen = new Map()
-      doc.querySelectorAll('text, image').forEach(el => {
-        let base
-        if (el.tagName.toLowerCase() === 'image') {
-          const NS = 'http://www.w3.org/1999/xlink'
-          const href = el.getAttributeNS(NS, 'href') || el.getAttribute('xlink:href') || el.getAttribute('href') || 'img'
-          base = 'i:' + href.split('/').pop().split('\\').pop().replace(/[^\w.-]/g, '').slice(0, 40)
-        } else {
-          const txt = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40)
-          base = 't:' + txt
-        }
-        const cnt = seen.get(base) || 0
-        seen.set(base, cnt + 1)
-        el.setAttribute('adj-id', cnt === 0 ? base : `${base}__${cnt}`)
-      })
-    }
+    function assignAdjIds(d) { return CertificateCore.assignAdjIds(d); }
 
     // ─────────────────────────────────────────────────────────────────
     // Store natural bounding boxes before any adj transforms.
@@ -735,24 +606,7 @@
     // browser has completed layout after appendChild(). Returns a Promise
     // so callers can await it before calling reapplyAll().
     // ─────────────────────────────────────────────────────────────────
-    function storeOriginalBBoxes(svgEl) {
-      return new Promise(resolve => {
-        // rAF ensures a layout frame has completed, so getBBox() returns real values.
-        requestAnimationFrame(() => {
-          svgEl.querySelectorAll('[adj-id]').forEach(el => {
-            try {
-              const b = el.getBBox()
-              el.dataset.obx = b.x
-              el.dataset.oby = b.y
-              el.dataset.obw = b.width
-              el.dataset.obh = b.height
-              el.dataset.otr = el.getAttribute('transform') || ''
-            } catch { }
-          })
-          resolve()
-        })
-      })
-    }
+    async function storeOriginalBBoxes(svg) { await CertificateCore.layout(svg); CertificateCore.remember(svg); }
 
     // ─────────────────────────────────────────────────────────────────
     // Apply adjustment transform
@@ -761,15 +615,7 @@
     // The original matrix is innermost so rotate/skew is applied first,
     // then scale expands/shrinks in that local space, then translate offsets.
     // ─────────────────────────────────────────────────────────────────
-    function applyAdjTransform(el, dx, dy, scale) {
-      const cx = parseFloat(el.dataset.obx || 0) + parseFloat(el.dataset.obw || 0) / 2
-      const cy = parseFloat(el.dataset.oby || 0) + parseFloat(el.dataset.obh || 0) / 2
-      const tx = (dx + cx * (1 - scale)).toFixed(2)
-      const ty = (dy + cy * (1 - scale)).toFixed(2)
-      const adj = `translate(${tx},${ty}) scale(${scale})`
-      const orig = el.dataset.otr || ''
-      el.setAttribute('transform', orig ? `${adj} ${orig}` : adj)
-    }
+    function applyAdjTransform(el, dx, dy, scale) { return CertificateCore.applyAdjTransform(el, dx, dy, scale); }
 
     function resetAdjTransform(el) {
       const orig = el.dataset.otr || ''
@@ -781,8 +627,10 @@
     // Load & render page
     // ─────────────────────────────────────────────────────────────────
     async function loadPage(page) {
+      const version = ++loadVersion;
       const wrapper = document.getElementById('svg-wrapper')
       const overlay = document.getElementById('loading-overlay')
+      overlay.textContent = 'Memuat...';
       overlay.style.display = 'flex'
       setStatus('Memuat…')
       clearSelRect()
@@ -798,7 +646,7 @@
           ? [FRONT_SVG, 'front_images/', 'Backup_of_1. Bani_', DUMMY_FRONT]
           : [BACK_SVG, 'back_images/', 'Belakang_', DUMMY_BACK]
 
-        const raw = await fetch(file).then(r => r.text())
+        const raw = await CertificateCore.fetchOK(file).then(r => r.text())
         const doc = parseSVG(preProcessSVG(raw))
         patchFonts(doc)
         // hideWatermarks intentionally NOT called — watermark is part of the design and
@@ -813,12 +661,14 @@
         svgEl.removeAttribute('width')
         svgEl.removeAttribute('height')
         svgEl.style.cssText = 'display:block;width:100%;height:auto'
+        if (version !== loadVersion) return;
         wrapper.appendChild(svgEl)
         currentSVGEl = svgEl
 
         // Fix #3: Await rAF-wrapped storeOriginalBBoxes so getBBox() runs after layout
         await storeOriginalBBoxes(svgEl)
 
+        if (version !== loadVersion) return;
         // Restore previously saved adjustments
         reapplyAll()
 
@@ -826,6 +676,7 @@
         overlay.style.display = 'none'
         setStatus(`Halaman ${page === 'front' ? 'Depan' : 'Belakang'} – klik elemen untuk memilih`)
       } catch (err) {
+        if (version !== loadVersion) return;
         overlay.textContent = 'Error: ' + err.message
         console.error(err)
       }
@@ -834,7 +685,7 @@
     function reapplyAll() {
       if (!currentSVGEl) return
       Object.entries(adjustments[currentPage] || {}).forEach(([id, adj]) => {
-        const el = currentSVGEl.querySelector(`[adj-id="${id}"]`)
+        const el = [...currentSVGEl.querySelectorAll("[adj-id]")].find(el => el.getAttribute("adj-id") === id)
         if (el) applyAdjTransform(el, adj.dx, adj.dy, adj.scale)
       })
     }
@@ -895,7 +746,11 @@
       clearSelRect()
       if (!currentSVGEl) return
       try {
-        const b = el.getBBox()
+        const box = el.getBBox();
+        const matrix = currentSVGEl.getScreenCTM().inverse().multiply(el.getScreenCTM());
+        const points = [[box.x,box.y],[box.x+box.width,box.y],[box.x,box.y+box.height],[box.x+box.width,box.y+box.height]].map(([x,y]) => new DOMPoint(x,y).matrixTransform(matrix));
+        const xs = points.map(p => p.x), ys = points.map(p => p.y);
+        const b = {x:Math.min(...xs),y:Math.min(...ys),width:Math.max(...xs)-Math.min(...xs),height:Math.max(...ys)-Math.min(...ys)};
         const ns = 'http://www.w3.org/2000/svg'
         selRectEl = document.createElementNS(ns, 'rect')
         selRectEl.classList.add('adj-sel-rect')
@@ -943,7 +798,7 @@
       const dy = parseInt(document.getElementById('sl-dy').value, 10)
       const scale = parseFloat(document.getElementById('sl-scale').value)
 
-      const el = currentSVGEl.querySelector(`[adj-id="${selectedId}"]`)
+      const el = [...currentSVGEl.querySelectorAll("[adj-id]")].find(el => el.getAttribute("adj-id") === selectedId)
       if (!el) return
 
       // Derive label from element content
@@ -954,14 +809,7 @@
           ? 'Gambar @ (' + (el.getAttribute('x') || '?') + ', ' + (el.getAttribute('y') || '?') + ')'
           : 'Teks: ' + (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 40)
 
-      adjustments[currentPage][selectedId] = {
-        label, dx, dy, scale,
-        // Store original bbox so the main app can apply transforms without needing getBBox()
-        obx: parseFloat(el.dataset.obx || 0),
-        oby: parseFloat(el.dataset.oby || 0),
-        obw: parseFloat(el.dataset.obw || 0),
-        obh: parseFloat(el.dataset.obh || 0),
-      }
+      adjustments[currentPage][selectedId] = { label, dx, dy, scale }
       applyAdjTransform(el, dx, dy, scale)
       drawSelRect(el)  // refresh rect at new position
       renderAdjList()
@@ -970,7 +818,7 @@
     function resetSelected() {
       if (selectedId === null || !currentSVGEl) return
       setSlidersFrom(0, 0, 1)
-      const el = currentSVGEl.querySelector(`[adj-id="${selectedId}"]`)
+      const el = [...currentSVGEl.querySelectorAll("[adj-id]")].find(el => el.getAttribute("adj-id") === selectedId)
       if (el) resetAdjTransform(el)
       delete adjustments[currentPage][selectedId]
       clearSelRect()
@@ -993,33 +841,24 @@
     // Render adjustments list
     // ─────────────────────────────────────────────────────────────────
     function renderAdjList() {
-      const list = document.getElementById('adj-list')
-      const entries = Object.entries(adjustments[currentPage] || {})
-      if (entries.length === 0) {
-        list.innerHTML = '<div class="no-adj">Belum ada penyesuaian.</div>'
-        return
+      const list = document.getElementById('adj-list'); list.replaceChildren();
+      for (const [id, adj] of Object.entries(adjustments[currentPage] || {})) {
+        const row = document.createElement('div'); row.className = 'adj-item' + (id === selectedId ? ' active' : '');
+        const label = document.createElement('span'); label.className = 'adj-item-label'; label.textContent = adj.label || id;
+        const values = document.createElement('span'); values.className = 'adj-item-vals'; values.textContent = `x ${adj.dx}, y ${adj.dy}, skala ${adj.scale}`;
+        const del = document.createElement('button'); del.className = 'adj-del'; del.textContent = '×'; del.onclick = e => { e.stopPropagation(); deleteAdj(id); };
+        row.onclick = () => clickListItem(id); row.append(label, values, del); list.appendChild(row);
       }
-      list.innerHTML = entries.map(([id, adj]) => `
-    <div class="adj-item ${id === selectedId ? 'active' : ''}" onclick="clickListItem('${id}')">
-      <span class="adj-item-label">${adj.label}</span>
-      <span class="adj-item-vals">
-        ${adj.dx !== 0 ? `x${adj.dx > 0 ? '+' : ''}${adj.dx} ` : ''}
-        ${adj.dy !== 0 ? `y${adj.dy > 0 ? '+' : ''}${adj.dy} ` : ''}
-        ${adj.scale !== 1 ? `×${parseFloat(adj.scale).toFixed(2)}` : ''}
-      </span>
-      <button class="adj-del" onclick="event.stopPropagation();deleteAdj('${id}')" title="Hapus">×</button>
-    </div>`
-      ).join('')
     }
 
     function clickListItem(id) {
       if (!currentSVGEl) return
-      const el = currentSVGEl.querySelector(`[adj-id="${id}"]`)
+      const el = [...currentSVGEl.querySelectorAll("[adj-id]")].find(el => el.getAttribute("adj-id") === id)
       if (el) selectElement(id, el)
     }
 
     function deleteAdj(id) {
-      const el = currentSVGEl && currentSVGEl.querySelector(`[adj-id="${id}"]`)
+      const el = currentSVGEl && [...currentSVGEl.querySelectorAll("[adj-id]")].find(el => el.getAttribute("adj-id") === id)
       if (el) resetAdjTransform(el)
       delete adjustments[currentPage][id]
       if (selectedId === id) clearSelection()
@@ -1096,8 +935,9 @@
         if (typeof parsed !== 'object' || parsed === null || (!parsed.front && !parsed.back)) {
           toast('Format salah — harus ada "front" dan/atau "back"', 'err'); return
         }
+        try { CertificateCore.validateAdjustments(parsed); } catch (e) { toast(e.message, 'err'); return; }
         adjustments = { front: parsed.front || {}, back: parsed.back || {} }
-        try { localStorage.setItem(LS_KEY, JSON.stringify(adjustments)) } catch { }
+        try { localStorage.setItem(LS_KEY, JSON.stringify(adjustments)) } catch (e) { toast('Gagal menyimpan: ' + e.message, 'err'); return; }
         close()
         loadPage(currentPage)   // muat ulang & terapkan ke halaman aktif
         toast('Penyesuaian diimpor & diterapkan!', 'ok')

@@ -1,0 +1,28 @@
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(./font-0.woff2) format('truetype');
+}
+@font-face {
+  font-family: 'Barlow Semi Condensed';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(./font-1.woff2) format('truetype');
+}
+@font-face {
+  font-family: 'Barlow Semi Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(./font-2.woff2) format('truetype');
+}
+@font-face {
+  font-family: 'Libre Bodoni';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(./font-3.woff2) format('truetype');
+}
