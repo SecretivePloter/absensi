@@ -154,9 +154,9 @@ window.CertificateCore = (() => {
       }
     }
   }
-  function applyStored(svg, page) {
+  function applyStored(svg, page, adjustments) {
     remember(svg);
-    const a = readAdjustments()[page];
+    const a = (adjustments || readAdjustments())[page] || {};
     for (const el of svg.querySelectorAll('[adj-id]')) {
       const adj = a[el.getAttribute('adj-id')];
       if (adj) applyAdjTransform(el, Number(adj.dx), Number(adj.dy), Number(adj.scale));

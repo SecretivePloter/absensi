@@ -48,7 +48,8 @@ function formData() {
   d.n5 = ['n1', 'n2', 'n3', 'n4'].every(k => d[k] !== '') ? String(['n1', 'n2', 'n3', 'n4'].reduce((sum, k) => sum + Number(d[k]), 0)) : '';
   return d;
 }
-async function renderCertificate(d, photo) {
+async function renderCertificate(d, photo, adjustments) {
+  if (adjustments) Core.validateAdjustments(adjustments);
   const front = await Core.prepare('front', {
     'NAMA PESERTA': d.nama, 'Nomor Sertifikat 1': 'No.DK.01.03/278/IX/2024', 'Nomor Sertifikat 2': d.nomor,
     'Tempat dan Tanggal Lahir Peserta': d.lahir, 'Level Bahasa Jepang': d.level, predikat: d.predikat,
@@ -67,7 +68,7 @@ async function renderCertificate(d, photo) {
   try {
     for (const [i, svg] of [front, back].entries()) {
       svg.style.cssText = 'display:block;width:1169px;height:auto'; stage.appendChild(svg);
-      await Core.layout(svg); Core.applyStored(svg, i ? 'back' : 'front');
+      await Core.layout(svg); Core.applyStored(svg, i ? 'back' : 'front', adjustments);
       canvases.push(await Core.svgToCanvas(svg));
     }
   } finally { stage.remove(); }
@@ -170,13 +171,19 @@ window.addEventListener('message', event => {
       for (let i = 1; i <= 5; i++) d['n' + i] = p['n' + i] ?? '';
       const values = [d.n1, d.n2, d.n3, d.n4];
       if (values.some(v => v !== '' && (!Number.isFinite(Number(v)) || Number(v) < 0 || Number(v) > 25))) throw new Error('Data nilai lama tidak sesuai: setiap kategori harus 0 sampai 25. Perbaiki data peserta terlebih dahulu.');
-      d.n5 = values.every(v => v !== '') ? String(values.reduce((sum, v) => sum + Number(v), 0)) : '';
+      if (p.scoreSource === 'excel') {
+        if (values.some(v => v === '') || d.n5 === '' || !Number.isFinite(Number(d.n5)) || Number(d.n5) < 0 || Number(d.n5) > 100) throw new Error('Nilai sertifikat Excel tidak lengkap atau tidak valid.');
+        // The approved Summary may be manually entered or differently rounded in Excel.
+        // Preserve its formatted text instead of recomputing from displayed category scores.
+      } else {
+        d.n5 = values.every(v => v !== '') ? String(values.reduce((sum, v) => sum + Number(v), 0)) : '';
+      }
       let photo = null;
       if (message.photoDataUrl) {
         if (!/^data:image\/(png|jpeg|webp);base64,/.test(message.photoDataUrl)) throw new Error('Format foto worker tidak didukung.');
         photo = await Core.cropPhoto(await (await fetch(message.photoDataUrl)).blob());
       }
-      const result = await renderCertificate(d, photo), pdf = Core.createPDF(result.canvases);
+      const result = await renderCertificate(d, photo, p.calibration), pdf = Core.createPDF(result.canvases);
       event.source.postMessage({ type: 'WORKER_PDF_DONE', requestId: message.requestId, nomor: p.nomor, fileName: result.fileName, pdfDataUrl: await Core.readBlob(pdf.output('blob')), success: true }, event.origin);
     } catch (e) {
       event.source.postMessage({ type: 'WORKER_PDF_DONE', requestId: message.requestId, nomor: message.payload?.nomor, success: false, error: e.message }, event.origin);

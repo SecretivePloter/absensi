@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SlidersHorizontal, Upload } from 'lucide-react';
 import SertifikatGeneratorEmbed from '../features/sertifikat/SertifikatGeneratorEmbed';
+import CertificateBatch from '../features/sertifikat/CertificateBatch';
 
 const LS_KEY = 'ich_adj';
 
@@ -70,6 +71,7 @@ function ImportKalibrasiModal({ onClose }) {
 
 export default function Sertifikat() {
     const [showImport, setShowImport] = useState(false);
+    const [mode, setMode] = useState('massal');
 
     return (
         <div className="p-4 md:p-6 lg:p-8 space-y-6">
@@ -100,7 +102,12 @@ export default function Sertifikat() {
                 </div>
             </div>
 
-            <SertifikatGeneratorEmbed />
+            <div className="flex flex-wrap gap-2" aria-label="Mode generator">
+                <button className={`rounded-md border px-4 py-2 text-sm ${mode === 'massal' ? 'bg-primary text-primary-foreground' : ''}`} onClick={() => setMode('massal')}>Generator Massal</button>
+                <button className={`rounded-md border px-4 py-2 text-sm ${mode === 'tunggal' ? 'bg-primary text-primary-foreground' : ''}`} onClick={() => setMode('tunggal')}>Generator Tunggal</button>
+            </div>
+            <div hidden={mode !== 'massal'}><CertificateBatch /></div>
+            {mode === 'tunggal' && <><p className="text-sm text-muted-foreground">Generator tunggal membuat PDF lokal. Gunakan Generator Massal (boleh satu peserta) untuk nomor resmi dan validasi publik.</p><SertifikatGeneratorEmbed /></>}
         </div>
     );
 }

@@ -19,6 +19,7 @@ import GallerySection from './features/gallery/GallerySection'
 import Events from './pages/Events'
 import EventDetail from './pages/EventDetail'
 import Sertifikat from './pages/Sertifikat'
+import CertificateVerify from './pages/CertificateVerify'
 
 function AuthGuard() {
   const { user, loading } = useAuthStore()
@@ -64,6 +65,7 @@ function AppInitializer({ children }) {
 }
 
 const router = createBrowserRouter([
+  { path: '/validasi-sertifikat', element: <CertificateVerify /> },
   { path: '/login', element: <Login /> },
   { path: '/scan', element: <Scan /> },
   { path: '/scan-event/:eventId', element: <EventScan /> },

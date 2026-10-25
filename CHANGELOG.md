@@ -2,6 +2,19 @@
 
 Format: `[Tanggal] Versi / Sesi — Deskripsi`
 
+## [2026-10-25] Generator massal dari folder dan validator publik
+
+- Impor satu folder Excel dan foto; hanya tabel Nilai Sertifikat pada Progres nilai
+  yang dipakai. Nilai mengikuti format Excel, termasuk Summary manual/desimal.
+- Pemeriksaan nama/foto ganda, data kosong, foto rusak, dan pengisian TTL per murid.
+- ZIP pratinjau atau penerbitan resmi, memakai engine dan kalibrasi sertifikat yang sama.
+- Nomor global dimulai 1058 dan berlanjut untuk CLT/Bimbel/TG. Reservasi transaksional
+  serta retry idempotent mencegah nomor ganda.
+- Validator publik `/validasi-sertifikat` menampilkan metadata sertifikat terbit.
+- Izin penerbitan menggunakan allowlist server khusus dua akun yang dikonfirmasi pemilik.
+- Batch 17 peserta/34 halaman, tes parser, akses database, retry, dan layout mobile lulus.
+- Lihat `docs/CERTIFICATE_VALIDATION.md` untuk bukti dan batas pengujian.
+
 ## [2026-10-20] Integrasi Generator Sertifikat Standalone
 
 - Menghapus implementasi React sertifikat lama, client Supabase sertifikat lama,
