@@ -2,7 +2,7 @@
 
 ## Penggunaan admin
 
-1. Login ke portal lalu buka `/sertifikat`, tab Generator Massal.
+1. Login ke portal lalu buka `/sertifikat-admin`, tab Generator Massal.
 2. Siapkan satu folder berisi satu file `.xlsx` dan foto JPG/PNG/WebP (maksimal 10 MB/foto).
    Nama foto harus sama dengan nama murid, misalnya `Hendro Ariyanto.jpg`.
    Huruf besar/kecil dan spasi berulang diabaikan. Nama mirip tidak ditebak.

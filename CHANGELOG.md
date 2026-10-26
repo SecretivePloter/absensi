@@ -2,6 +2,11 @@
 
 Format: `[Tanggal] Versi / Sesi — Deskripsi`
 
+## [2026-10-26] Perbaikan rute admin di Vercel
+
+- Rute admin menjadi /sertifikat-admin; URL lama /sertifikat diarahkan ke sana.
+- Rute khusus mencegah benturan dengan direktori runtime statis, yang tetap di /sertifikat/index.html.
+
 ## [2026-10-25] Generator massal dari folder dan validator publik
 
 - Impor satu folder Excel dan foto; hanya tabel Nilai Sertifikat pada Progres nilai

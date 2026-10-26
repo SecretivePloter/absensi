@@ -1,6 +1,21 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "redirects": [
+    {
+      "destination": "/sertifikat-admin",
+      "source": "/sertifikat",
+      "permanent": false
+    },
+    {
+      "destination": "/sertifikat-admin",
+      "source": "/sertifikat/",
+      "permanent": false
+    }
   ]
 }
