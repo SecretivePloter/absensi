@@ -2,6 +2,10 @@
 
 Format: `[Tanggal] Versi / Sesi — Deskripsi`
 
+## [2026-10-27] Tempat pada tanggal tanda tangan
+
+- Tanggal tanda tangan halaman depan dan belakang menampilkan Cikarang, sebelum tanggal terbit.
+
 ## [2026-10-27] Nomor sertifikat dari master
 
 - Nomor Sertifikat dibaca dari AUTOMATE dan dikirim ke registri tanpa penomoran ulang.

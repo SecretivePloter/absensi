@@ -54,10 +54,10 @@ async function renderCertificate(d, photo, adjustments) {
     'NAMA PESERTA': d.nama, 'Nomor Sertifikat 1': 'No.DK.01.03/278/IX/2024', 'Nomor Sertifikat 2': d.nomor,
     'Tempat dan Tanggal Lahir Peserta': d.lahir, 'Level Bahasa Jepang': d.level, predikat: d.predikat,
     'lama Waktu Belajar': d.lama, 'lulus/ tidak lulus': d.lulus,
-    'Tanggal Selesai Kursus': fmtDate(d.selesai), 'Tanggal terbit Sertifikat': fmtDate(d.terbit),
+    'Tanggal Selesai Kursus': fmtDate(d.selesai), 'Tanggal terbit Sertifikat': `Cikarang, ${fmtDate(d.terbit)}`,
   }, photo);
   const back = await Core.prepare('back', {
-    NAMA: d.nama, 'Tanggal terbit sertifikat': fmtDate(d.terbit), 'lulus/tidak': d.lulus,
+    NAMA: d.nama, 'Tanggal terbit sertifikat': `Cikarang, ${fmtDate(d.terbit)}`, 'lulus/tidak': d.lulus,
     nilai1: d.n1, nilai2: d.n2, nilai3: d.n3, nilai4: d.n4, nilai5: d.n5,
   });
   // Fixed-size offscreen stage is measurable even inside the gallery worker.
