@@ -8,20 +8,20 @@
    Huruf besar/kecil dan spasi berulang diabaikan. Nama mirip tidak ditebak.
 3. Pilih folder. Sistem hanya membaca sheet **AUTOMATE**, tabel berjudul
    **TABEL UNTUK BULK GENERATOR** pada master yang disediakan. Sheet lain diabaikan.
-   Pertahankan header `kelas`, `NAMA`, `Tempat`, `Nilai sertifikat`, serta subheader
+   Pertahankan header `Nomor Sertifikat`, `kelas`, `NAMA`, `Tempat`, `Nilai sertifikat`, serta subheader
    `Bunpou`, `Kaiwa`, `Dokkai`, `Absensi`, `Nilai`. Kolom nilai dipetakan menurut
    nama header, bukan diasumsikan mengikuti urutan renderer.
 4. Nama otomatis dicetak UPPERCASE. Tempat/tanggal lahir diambil lengkap dari kolom
    `Tempat`, misalnya `Kuningan, 11 Mei 1994`, dan dapat dikoreksi sebelum generate.
-   Kelas Excel (misalnya GST26) ditampilkan sebagai informasi peserta; jenis nomor
-   CLT/Bimbel/TG tetap dipilih di pengaturan. Nama foto dicocokkan tanpa membedakan
+   Kelas Excel (misalnya GST26) ditampilkan sebagai informasi peserta. Nomor wajib
+   diisi lengkap; jenis CLT/Bimbel/TG dan tanggal terbit dibaca dari nomor tersebut. Nama foto dicocokkan tanpa membedakan
    kapital, Unicode kompatibel, atau spasi berulang. Perbedaan ejaan tidak ditebak.
    Data wajib yang kosong/error dan nama/foto ganda harus diperbaiki dahulu.
-5. Periksa kelas, tanggal terbit, tanggal selesai, level, durasi, predikat dan hasil.
-   Default tanggal 20 Oktober 2026 mengikuti contoh, bukan tanggal komputer.
+5. Periksa nomor dan tanggal terbit setiap baris, tanggal selesai, level, durasi, predikat dan hasil.
+   Tanggal selesai tidak boleh sesudah tanggal terbit peserta yang dipilih.
    Predikat default mengikuti Summary menurut kategori pada template; admin dapat
    menggantinya untuk seluruh batch. Hasil LULUS/TIDAK LULUS harus dikonfirmasi admin.
-6. **Unduh ZIP pratinjau** membuat PDF bertanda PRATINJAU, tanpa nomor resmi.
+6. **Unduh ZIP pratinjau** membuat PDF bertanda PRATINJAU, dengan nomor Excel dan penanda PRATINJAU, belum terdaftar.
 7. **Generate & terbitkan ZIP** memesan nomor, membuat dua halaman PDF per murid,
    lalu mencatat penerbitan setelah seluruh PDF dan ZIP selesai dibuat.
 8. Simpan ZIP dengan aman. ZIP berisi PDF dan `manifest.json` yang memuat nomor,
@@ -35,8 +35,11 @@
   Summary `96.5625` dengan format `0.0` dicetak `96.6`. Kolom Nilai (Summary) tidak dihitung ulang.
 - Formula memakai hasil yang tersimpan di workbook. Hitung ulang dan simpan workbook
   di Excel sebelum impor; formula tanpa hasil cache ditolak.
-- Nomor awal registri 1058: `NO.S.1058.CLT.20.X.2026`.
-- Satu pencatat nomor untuk CLT, Bimbel, TG, semua batch dan tahun. Nomor tidak direset.
+- Nomor mengikuti kolom Nomor Sertifikat secara persis, bukan diganti server.
+- Format: `NO.S.1056.CLT.20.X.2026`. Jenis dan tanggal pada nomor menjadi metadata penerbitan.
+- Nomor urut harus unik lintas CLT/Bimbel/TG dan tahun. Nomor kosong, tanggal tidak valid,
+  duplikasi dalam master, atau nomor yang sudah terdaftar ditolak. Tidak ada penimpaan.
+- Counter internal hanya maju bila perlu, tidak menurunkan atau mengubah nomor Excel.
 - Reservasi dilindungi transaksi database, bukan localStorage. Nomor yang sudah
   dipesan tidak didaur ulang meskipun render gagal; batch identik dapat dilanjutkan.
 - Ulangi dengan data, foto, pilihan peserta, pengaturan, dan kalibrasi yang sama

@@ -55,3 +55,18 @@ Panduan operasional: `src/features/sertifikat/README.md`.
   24/21/23/25/93 sesuai pemetaan kategori. Ini pratinjau, tidak memesan nomor resmi.
 - Login admin/RPC next disimulasikan untuk pengujian lokal; tidak memakai akun asli.
 - TTL dipertahankan sesuai teks master, termasuk ejaan; admin dapat mengoreksinya.
+
+## Nomor sertifikat dari Excel, 27 Oktober 2026
+
+- Master terbaru: nomor A11:A26, 1056–1071, dipertahankan persis.
+- Parser memeriksa format, tanggal kalender, dan duplikasi nomor urut lintas jenis.
+- Jenis dan tanggal terbit diturunkan per peserta dari nomor, bukan pengaturan manual.
+- Tujuh tes Node, lint modul dan build final lulus.
+- UI lokal sesi simulasi: 16 PDF/32 halaman, nol pageerror/foto hilang, hash ZIP valid.
+- Manifest seluruh peserta cocok dengan nomor Excel. Render depan sampel diperiksa.
+- Preview memuat nomor dan penanda PRATINJAU; tidak mendaftarkan sertifikat nyata.
+- RPC asli diuji dalam transaksi rollback: nomor 1056, retry, duplikat ditolak,
+  pending tidak valid, complete lalu validator anon valid, counter maju hingga 1072
+  pada uji nomor 1071, tanggal mustahil ditolak, akses penerbitan anon ditolak.
+- Setelah rollback: 0 records. Tidak ada nomor/data siswa diterbitkan untuk tes.
+- Migrasi hanya mengganti fungsi batch_action, mempertahankan allowlist dan grants.

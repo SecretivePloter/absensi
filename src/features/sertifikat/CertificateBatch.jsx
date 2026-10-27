@@ -59,7 +59,7 @@ export default function CertificateBatch() {
     if (working.current) return
     setError(''); setDownload(null); setProgress(0)
     if (!selected.length || invalid.length) { setError('Pilih peserta dan lengkapi foto serta tempat/tanggal lahir.'); return }
-    if (!settings.issueDate || !settings.endDate || settings.endDate > settings.issueDate || !settings.level.trim() || !settings.predicate.trim() || !/^\d+(\.\d+)?$/.test(settings.duration) || Number(settings.duration) <= 0) {
+    if (!settings.issueDate || !settings.endDate || selected.some(row => settings.endDate > row.issueDate) || !settings.level.trim() || !settings.predicate.trim() || !/^\d+(\.\d+)?$/.test(settings.duration) || Number(settings.duration) <= 0) {
       setError('Lengkapi pengaturan. Tanggal selesai tidak boleh sesudah tanggal terbit, dan durasi harus lebih dari nol.'); return
     }
     if (!ready || !frame.current?.contentWindow?.CertificateCore) { setError('Engine generator belum siap. Tunggu lalu coba lagi.'); return }
@@ -76,29 +76,30 @@ export default function CertificateBatch() {
       }
       const payload = {
         settings, calibration,
-        rows: prepared.map(row => ({ name: row.name, ttl: row.ttl.trim(), photoHash: row.photoHash, scores: row.scores.map(score => ({ ...score, display: score.display.replace(',', '.') })) })),
+        rows: prepared.map(row => ({ name: row.name, number: row.number, ttl: row.ttl.trim(), photoHash: row.photoHash, scores: row.scores.map(score => ({ ...score, display: score.display.replace(',', '.') })) })),
       }
       const key = await sha256(JSON.stringify(payload))
       let reservation = null
       if (issue) {
         setStatus('Memesan nomor sertifikat dari server…')
         reservation = await certificateRPC('certificate_batch', { p_action: 'reserve', p_key: key, p_payload: payload })
+        if (reservation.records?.length !== prepared.length || prepared.some((row, i) => reservation.records[i].number !== row.number)) throw new Error('Nomor server berbeda dari master Excel. Muat ulang halaman sebelum mencoba lagi.')
       }
       const files = {}, hashes = [], manifest = []
       for (const [index, row] of prepared.entries()) {
         setStatus(`Membuat PDF ${index + 1}/${prepared.length}: ${row.name}`)
-        const number = reservation?.records[index].number || 'PRATINJAU - BELUM DITERBITKAN'
+        const number = reservation?.records[index].number || `${row.number} - PRATINJAU`
         const result = await generator.generate({
           nama: row.name, nomor: number, ttl: row.ttl.trim(), level: settings.level,
           lama: settings.duration, predikat: settings.predicate === 'auto' ? predicateFor(row.scores[4].display) : settings.predicate, lulus: settings.result,
-          tgl_selesai: settings.endDate, tgl_terbit: settings.issueDate, scoreSource: 'excel', calibration,
+          tgl_selesai: settings.endDate, tgl_terbit: row.issueDate, scoreSource: 'excel', calibration,
           ...Object.fromEntries(row.scores.map((score, i) => [`n${i + 1}`, score.display.replace(',', '.')])) ,
         }, row.photoDataUrl)
         const bytes = new Uint8Array(await (await fetch(result.pdfDataUrl)).arrayBuffer())
         hashes.push(await sha256(bytes))
         const filename = `${String(index + 1).padStart(3, '0')}_${result.fileName}`
         files[filename] = bytes
-        manifest.push({ number, name: row.name, filename, sha256: hashes[index], scores: row.scores, validator: issue ? `${location.origin}/validasi-sertifikat?nomor=${encodeURIComponent(number)}` : null })
+        manifest.push({ number: row.number, name: row.name, filename, sha256: hashes[index], scores: row.scores, validator: issue ? `${location.origin}/validasi-sertifikat?nomor=${encodeURIComponent(number)}` : null })
         setProgress(index + 1)
         await new Promise(resolve => setTimeout(resolve, 0))
       }
@@ -108,9 +109,9 @@ export default function CertificateBatch() {
         setStatus('PDF selesai. Mencatat penerbitan untuk validator publik…')
         await certificateRPC('certificate_batch', { p_action: 'complete', p_key: key, p_hashes: hashes })
       }
-      const filename = `${issue ? 'Sertifikat' : 'Pratinjau'}_${settings.classType}_${settings.issueDate}_${key.slice(0, 8)}.zip`
+      const filename = `${issue ? 'Sertifikat' : 'Pratinjau'}_${prepared[0].classType}_${prepared[0].issueDate}_${key.slice(0, 8)}.zip`
       setDownload({ blob: zip, filename }); saveBlob(zip, filename)
-      setStatus(issue ? `${selected.length} sertifikat diterbitkan dan ZIP siap. Nomor dapat diperiksa di validator publik.` : `${selected.length} PDF pratinjau siap. Belum diterbitkan dan tidak memakai nomor resmi.`)
+      setStatus(issue ? `${selected.length} sertifikat diterbitkan dan ZIP siap. Nomor dapat diperiksa di validator publik.` : `${selected.length} PDF pratinjau siap. Nomor mengikuti Excel, bertanda PRATINJAU dan belum terdaftar.`)
       if (issue) certificateRPC('certificate_batch', { p_action: 'next' }).then(data => setNextNumber(data.next_number)).catch(() => {})
     } catch (e) {
       setError(`${e.message} Jika nomor sudah dipesan, ulangi dengan data dan foto yang sama untuk memakai reservasi yang sama.`)
@@ -128,26 +129,24 @@ export default function CertificateBatch() {
       <p className="text-xs text-muted-foreground break-words">{source || 'Satu master .xlsx dengan sheet AUTOMATE dan foto JPG/PNG/WebP. Sheet lain diabaikan. Nama foto tidak membedakan kapital atau spasi berulang. Subfolder boleh digunakan.'}</p>
       {!!rows.length && <p className="text-sm text-green-700">Folder berhasil dibaca: {rows.length} peserta.</p>}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="text-sm">Jenis kelas<select aria-label="Jenis kelas" className={inputClass} value={settings.classType} onChange={e => setSettings({ ...settings, classType: e.target.value })}>{['CLT', 'Bimbel', 'TG'].map(v => <option key={v}>{v}</option>)}</select></label>
-        <label className="text-sm">Tanggal terbit<input aria-label="Tanggal terbit" className={inputClass} type="date" value={settings.issueDate} onChange={e => setSettings({ ...settings, issueDate: e.target.value })} /></label>
         <label className="text-sm">Tanggal selesai kursus<input aria-label="Tanggal selesai kursus" className={inputClass} type="date" value={settings.endDate} onChange={e => setSettings({ ...settings, endDate: e.target.value })} /></label>
         <label className="text-sm">Level<input aria-label="Level" className={inputClass} value={settings.level} onChange={e => setSettings({ ...settings, level: e.target.value })} /></label>
         <label className="text-sm">Lama belajar (jam)<input aria-label="Lama belajar" className={inputClass} type="number" min="1" value={settings.duration} onChange={e => setSettings({ ...settings, duration: e.target.value })} /></label>
         <label className="text-sm">Predikat<select aria-label="Predikat" className={inputClass} value={settings.predicate} onChange={e => setSettings({ ...settings, predicate: e.target.value })}><option value="auto">Sesuai Summary Excel</option>{['Cukup', 'Baik', 'Amat Baik', 'Amat Sangat Baik', 'Sempurna'].map(v => <option key={v}>{v}</option>)}</select></label>
         <label className="text-sm">Hasil<select aria-label="Hasil" className={inputClass} value={settings.result} onChange={e => setSettings({ ...settings, result: e.target.value })}><option>LULUS</option><option>TIDAK LULUS</option></select></label>
-        <div className="text-sm">Nomor urut berikutnya<p className="pt-2 text-lg font-semibold">{nextNumber ?? 'Belum tersedia'}</p></div>
+        <div className="text-sm">Nomor dan tanggal terbit<p className="pt-2 font-semibold">Mengikuti nomor sertifikat di Excel</p></div>
       </div>
-      <p className="text-xs text-muted-foreground">Pengaturan awal mengikuti contoh. Periksa tanggal, level, durasi, predikat, dan hasil sebelum menerbitkan. Nomor final ditetapkan server saat generate.</p>
+      <p className="text-xs text-muted-foreground">Pengaturan awal mengikuti contoh. Periksa tanggal, level, durasi, predikat, dan hasil sebelum menerbitkan. Nomor, jenis kelas, dan tanggal terbit mengikuti nomor setiap peserta di Excel. Server memeriksa benturan nomor saat penerbitan.</p>
     </fieldset>
     {!!rows.length && <fieldset disabled={busy} className="space-y-3 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-medium">2. Periksa {rows.length} peserta</h3><button className={buttonClass} onClick={() => setRows(rows.map(row => ({ ...row, selected: !rows.every(r => r.selected) })))}>{rows.every(row => row.selected) ? 'Batalkan semua pilihan' : 'Pilih semua'}</button></div>
-      <p className="text-sm text-muted-foreground">Nama dicetak KAPITAL. Tempat/tanggal lahir otomatis dari kolom Tempat di AUTOMATE dan dapat dikoreksi di sini. Nilai akhir (Summary) mengikuti Excel, tidak dihitung ulang. Kelas peserta dari Excel tidak mengubah jenis nomor CLT/Bimbel/TG.</p>
+      <p className="text-sm text-muted-foreground">Nama dicetak KAPITAL. Tempat/tanggal lahir otomatis dari kolom Tempat di AUTOMATE dan dapat dikoreksi di sini. Nilai akhir (Summary) mengikuti Excel, tidak dihitung ulang. Jenis nomor CLT/Bimbel/TG dan tanggal terbit dibaca dari nomor sertifikat setiap peserta.</p>
       <p className="text-xs text-muted-foreground">Geser tabel ke kanan untuk melihat seluruh nilai, termasuk Summary.</p>
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm text-left"><thead className="bg-muted"><tr>{['Pilih', 'Nama / baris Excel', 'Foto', 'Tempat, tanggal lahir', 'Bunpou', 'Dokkai', 'Kaiwa', 'Absensi', 'Summary'].map(h => <th className="px-3 py-3 whitespace-nowrap" key={h}>{h}</th>)}</tr></thead>
           <tbody>{rows.map((row, index) => <tr key={row.key} className="border-t">
             <td className="px-3 py-3"><input aria-label={`Pilih ${row.name}`} type="checkbox" checked={row.selected} onChange={e => editRow(index, { selected: e.target.checked })} /></td>
-            <td className="px-3 py-3 min-w-40">{row.name}<small className="block text-muted-foreground">{row.studentClass} · Baris {row.row}</small></td>
+            <td className="px-3 py-3 min-w-40">{row.name}<small className="block text-muted-foreground">{row.studentClass} · Baris {row.row}</small><small className="block whitespace-nowrap">{row.number}</small><small className="block">Terbit: {row.issueDate}</small></td>
             <td className="px-3 py-3 min-w-48"><span className={row.photoError ? 'text-red-600' : 'text-green-700'}>{row.photoError || row.photo.name}</span><input aria-label={`Foto ${row.name}`} type="file" accept="image/jpeg,image/png,image/webp" className="mt-1 block w-48 text-xs" onChange={e => { const photo = e.target.files[0]; if (photo) editRow(index, { photo, photoError: photo.size && photo.size <= 10 * 1024 * 1024 ? '' : 'Foto harus 1 byte–10 MB' }) }} /></td>
             <td className="px-3 py-3 min-w-64"><input aria-label={`Tempat tanggal lahir ${row.name}`} className={inputClass} placeholder="Contoh: Kuningan, 11 Mei 1994" value={row.ttl} maxLength={200} onChange={e => editRow(index, { ttl: e.target.value })} /></td>
             {row.scores.map((score, i) => <td className="px-3 py-3 tabular-nums" key={i} title={`Nilai asli: ${score.value}; sel ${score.cell}`}>{score.display}</td>)}
@@ -159,7 +158,7 @@ export default function CertificateBatch() {
       <p role="status" aria-live="polite" className="text-sm">{status}</p>
       {!!error && <p role="alert" className="text-sm text-red-600 break-words">{error}</p>}
       {busy && <progress className="w-full" max={Math.max(selected.length, 1)} value={progress} />}
-      <p className="text-xs text-muted-foreground">{selected.length} dipilih · {invalid.length} perlu dilengkapi. Pratinjau tidak memakai nomor. Generate &amp; terbitkan akan mencatat penerbitan resmi.</p>
+      <p className="text-xs text-muted-foreground">{selected.length} dipilih · {invalid.length} perlu dilengkapi. Pratinjau belum mendaftarkan nomor. Generate &amp; terbitkan akan mencatat penerbitan resmi.</p>
       <div className="flex flex-wrap gap-2">
         <button className={buttonClass} disabled={busy || !ready || !selected.length || !!invalid.length} onClick={() => generate(false)}>Unduh ZIP pratinjau</button>
         <button className={`${buttonClass} bg-primary text-primary-foreground hover:bg-primary/90`} disabled={busy || !ready || nextNumber === null || !selected.length || !!invalid.length} onClick={() => generate(true)}>Generate &amp; terbitkan ZIP</button>

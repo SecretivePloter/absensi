@@ -2,6 +2,13 @@
 
 Format: `[Tanggal] Versi / Sesi — Deskripsi`
 
+## [2026-10-27] Nomor sertifikat dari master
+
+- Nomor Sertifikat dibaca dari AUTOMATE dan dikirim ke registri tanpa penomoran ulang.
+- Jenis kelas dan tanggal terbit diturunkan per peserta dari nomor Excel.
+- Validasi nomor/date/duplikasi pada parser dan server; retry tetap idempotent.
+- Preview menampilkan nomor Excel dengan penanda PRATINJAU, belum diterbitkan.
+
 ## [2026-10-27] Master AUTOMATE untuk sertifikat massal
 
 - Impor hanya tabel master AUTOMATE; sheet lainnya dan format Progres nilai lama diabaikan.

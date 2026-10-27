@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import XLSX from 'xlsx-js-style'
-import { parseCertificateWorkbook, matchPhotos, certificateNumber, predicateFor } from '../src/features/sertifikat/batch-data.js'
+import { parseCertificateWorkbook, matchPhotos, certificateNumber, predicateFor, parseCertificateNumber } from '../src/features/sertifikat/batch-data.js'
 
 function fixture() {
   const sheet = XLSX.utils.aoa_to_sheet([
@@ -11,7 +11,8 @@ function fixture() {
     ['GST26', 'Peserta A', 'Kuningan, 11 Mei 1994', 23.875, 22, 21, 25, 96.5625],
     ['GST26', 'Peserta B', 'Jakarta, 12 November 1993', 24, 23, 25, 25, 97],
   ])
-  sheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 1, c: 7 } }]
+  sheet.I3 = {t:'s',v:'Nomor Sertifikat'}; sheet.I5 = {t:'s',v:'NO.S.1056.CLT.20.X.2026'}; sheet.I6 = {t:'s',v:'NO.S.1057.CLT.20.X.2026'}; sheet['!ref']='A1:I6'
+  sheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 1, c: 8 } }]
   for (const row of [5, 6]) for (const col of ['D', 'E', 'F', 'G', 'H']) sheet[col + row].z = col === 'H' ? '0.0' : '0'
   return { SheetNames: ['Nomor Sertifikat', 'AUTOMATE', 'Progres nilai'], Sheets: { 'Nomor Sertifikat': {}, AUTOMATE: sheet, 'Progres nilai': {} } }
 }
@@ -60,4 +61,14 @@ test('numbering and predicates remain unchanged', () => {
   assert.equal(certificateNumber(1059, 'Bimbel', '2027-01-01'), 'NO.S.1059.Bimbel.1.I.2027')
   assert.equal(predicateFor('96.6'), 'Amat Sangat Baik')
   assert.equal(predicateFor('90'), 'Amat Baik')
+})
+
+test('uses exact Excel number and derives class/date; rejects invalid and duplicate sequences', () => {
+  const rows = parseCertificateWorkbook(XLSX, fixture()).rows
+  assert.equal(rows[0].number, 'NO.S.1056.CLT.20.X.2026')
+  assert.equal(rows[0].issueDate, '2026-10-20')
+  assert.equal(parseCertificateNumber('NO.S.77.Bimbel.29.II.2024').classType, 'Bimbel')
+  for (const n of ['', 'NO.S.5.CLT.31.II.2026', 'NO.S.5.CLT.29.II.2025', 'NO.S.5.CLT.1.XIII.2026']) assert.throws(() => parseCertificateNumber(n))
+  const b = fixture(); b.Sheets.AUTOMATE.I6.v = 'NO.S.1056.TG.21.X.2026'
+  assert.throws(() => parseCertificateWorkbook(XLSX,b), /ganda/)
 })

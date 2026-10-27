@@ -2,7 +2,7 @@ import { supabase } from '../../lib/supabase'
 
 export async function certificateRPC(name, args = {}) {
   const { data, error } = await supabase.rpc(name, args)
-  if (error?.code === '23505') throw new Error('Peserta sudah memiliki reservasi atau sertifikat pada kelas dan tanggal yang sama. Gunakan batch asli untuk mencoba ulang; hubungi admin untuk koreksi data.')
+  if (error?.code === '23505') throw new Error('Nomor sertifikat atau peserta sudah memiliki reservasi/penerbitan. Nomor tidak boleh dipakai ulang. Gunakan batch asli untuk mencoba ulang; hubungi admin untuk koreksi data.')
   if (error) throw new Error(error.message || 'Layanan sertifikat tidak tersedia.')
   return data
 }

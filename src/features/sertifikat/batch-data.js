@@ -2,6 +2,15 @@
 // then returned in the renderer's Bunpou, Dokkai, Kaiwa, Absensi, total order.
 export const normalizeName = value => String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID')
 export const romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
+export function parseCertificateNumber(value) {
+  const number = String(value || '').trim()
+  const m = /^NO[.]S[.]([1-9][0-9]{0,8})[.](CLT|Bimbel|TG)[.]([1-9]|[12][0-9]|3[01])[.](VIII|VII|XII|III|VI|IV|IX|XI|II|V|X|I)[.](20[0-9]{2}|2100)$/.exec(number)
+  if (!m) throw new Error(`Nomor sertifikat tidak valid: ${number || '(kosong)'}. Gunakan NO.S.1056.CLT.20.X.2026.`)
+  const month = romanMonths.indexOf(m[4]) + 1
+  const date = new Date(Date.UTC(Number(m[5]), month - 1, Number(m[3])))
+  if (Number(m[5]) < 2020 || date.getUTCMonth() !== month - 1) throw new Error(`Tanggal dalam nomor sertifikat tidak valid: ${number}.`)
+  return { number, sequence: Number(m[1]), classType: m[2], issueDate: `${m[5]}-${String(month).padStart(2, '0')}-${m[3].padStart(2, '0')}` }
+}
 export function predicateFor(summary) {
   const score = Number(String(summary).replace(',', '.'))
   return score === 100 ? 'Sempurna' : score >= 91 ? 'Amat Sangat Baik' : score >= 86 ? 'Amat Baik' : score >= 71 ? 'Baik' : score >= 60 ? 'Cukup' : 'Belum Memenuhi'
@@ -26,21 +35,22 @@ export function parseCertificateWorkbook(XLSX, workbook) {
   const title = headings[0]
   const titleMerge = (sheet['!merges'] || []).find(m => m.s.r === title.r && m.s.c === title.c)
   const r = (titleMerge?.e.r ?? title.r) + 1
-  const start = title.c, end = titleMerge?.e.c ?? range.e.c
+  const start = range.s.c, end = titleMerge?.e.c ?? range.e.c
   const findColumn = (row, heading) => {
     const matches = []
     for (let col = start; col <= end; col++) if (normalizeName(cell(row, col)?.v) === heading) matches.push(col)
     if (matches.length !== 1) throw new Error(`Kolom ${heading} harus ada tepat satu di tabel AUTOMATE.`)
     return matches[0]
   }
+  const numberColumn = findColumn(r, 'nomor sertifikat')
   const classColumn = findColumn(r, 'kelas'), nameColumn = findColumn(r, 'nama'), ttlColumn = findColumn(r, 'tempat')
   const scoreStart = findColumn(r, 'nilai sertifikat')
   const expected = ['bunpou', 'dokkai', 'kaiwa', 'absensi', 'nilai']
   const columns = expected.map(heading => findColumn(r + 1, heading))
   if (columns.some(col => col < scoreStart)) throw new Error('Kolom nilai harus berada di bagian Nilai sertifikat.')
-  const rows = [], names = new Set()
+  const rows = [], names = new Set(), sequences = new Set()
   for (let row = r + 2; row <= range.e.r; row++) {
-    const usedColumns = [classColumn, nameColumn, ttlColumn, ...columns]
+    const usedColumns = [numberColumn, classColumn, nameColumn, ttlColumn, ...columns]
     if (usedColumns.every(col => cell(row, col)?.v === undefined || cell(row, col)?.v === '')) continue
     const readText = (col, label) => {
       const source = cell(row, col)
@@ -50,6 +60,9 @@ export function parseCertificateWorkbook(XLSX, workbook) {
     const name = readText(nameColumn, 'Nama').toLocaleUpperCase('id-ID')
     const ttl = readText(ttlColumn, 'Tempat, tanggal lahir')
     const studentClass = readText(classColumn, 'Kelas')
+    const certificate = parseCertificateNumber(readText(numberColumn, 'Nomor Sertifikat'))
+    if (sequences.has(certificate.sequence)) throw new Error(`Nomor urut sertifikat ganda: ${certificate.sequence}.`)
+    sequences.add(certificate.sequence)
     if (ttl.length > 200) throw new Error(`${name}: tempat/tanggal lahir maksimal 200 karakter.`)
     const key = normalizeName(name)
     if (names.has(key)) throw new Error(`Nama ganda pada baris ${row + 1}: ${name}. Perbaiki workbook dahulu.`)
@@ -63,7 +76,7 @@ export function parseCertificateWorkbook(XLSX, workbook) {
       if (!/^\d+(?:[.,]\d+)?$/.test(display)) throw new Error(`${name}: format angka ${heading} tidak didukung (${display}).`)
       return { value: source.v, display, cell: XLSX.utils.encode_cell({ r: row, c: columns[i] }) }
     })
-    rows.push({ name, key, row: row + 1, scores, ttl, studentClass, selected: true, photo: null, photoError: '' })
+    rows.push({ name, key, row: row + 1, scores, ttl, studentClass, ...certificate, selected: true, photo: null, photoError: '' })
   }
   if (!rows.length) throw new Error('Tidak ada peserta pada tabel Nilai Sertifikat.')
   if (rows.length > 200) throw new Error('Maksimal 200 peserta per batch.')
