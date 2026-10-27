@@ -6,11 +6,17 @@
 2. Siapkan satu folder berisi satu file `.xlsx` dan foto JPG/PNG/WebP (maksimal 10 MB/foto).
    Nama foto harus sama dengan nama murid, misalnya `Hendro Ariyanto.jpg`.
    Huruf besar/kecil dan spasi berulang diabaikan. Nama mirip tidak ditebak.
-3. Pilih folder. Sistem hanya mengambil nama dan tabel **Nilai Sertifikat** dari
-   sheet **Progres nilai** atau **Progress nilai**. Pada contoh GST#26, sumbernya
-   D6:D22 dan AB6:AF22 (17 peserta); bagian nilai level lain tidak diikutkan.
-4. Periksa foto dan lengkapi tempat/tanggal lahir setiap peserta. Data ini tidak
-   diambil dari sheet lain. Foto hilang/ganda dapat dipilih manual pada barisnya.
+3. Pilih folder. Sistem hanya membaca sheet **AUTOMATE**, tabel berjudul
+   **TABEL UNTUK BULK GENERATOR** pada master yang disediakan. Sheet lain diabaikan.
+   Pertahankan header `kelas`, `NAMA`, `Tempat`, `Nilai sertifikat`, serta subheader
+   `Bunpou`, `Kaiwa`, `Dokkai`, `Absensi`, `Nilai`. Kolom nilai dipetakan menurut
+   nama header, bukan diasumsikan mengikuti urutan renderer.
+4. Nama otomatis dicetak UPPERCASE. Tempat/tanggal lahir diambil lengkap dari kolom
+   `Tempat`, misalnya `Kuningan, 11 Mei 1994`, dan dapat dikoreksi sebelum generate.
+   Kelas Excel (misalnya GST26) ditampilkan sebagai informasi peserta; jenis nomor
+   CLT/Bimbel/TG tetap dipilih di pengaturan. Nama foto dicocokkan tanpa membedakan
+   kapital, Unicode kompatibel, atau spasi berulang. Perbedaan ejaan tidak ditebak.
+   Data wajib yang kosong/error dan nama/foto ganda harus diperbaiki dahulu.
 5. Periksa kelas, tanggal terbit, tanggal selesai, level, durasi, predikat dan hasil.
    Default tanggal 20 Oktober 2026 mengikuti contoh, bukan tanggal komputer.
    Predikat default mengikuti Summary menurut kategori pada template; admin dapat
@@ -26,7 +32,7 @@
 
 - Nilai 4 kategori harus 0–25 dan Summary 0–100.
 - Hasil memakai format tampilan sel Excel: `23.875` dengan format `0` dicetak `24`;
-  Summary `96.5625` dengan format `0.0` dicetak `96.6`. Summary tidak dihitung ulang.
+  Summary `96.5625` dengan format `0.0` dicetak `96.6`. Kolom Nilai (Summary) tidak dihitung ulang.
 - Formula memakai hasil yang tersimpan di workbook. Hitung ulang dan simpan workbook
   di Excel sebelum impor; formula tanpa hasil cache ditolak.
 - Nomor awal registri 1058: `NO.S.1058.CLT.20.X.2026`.

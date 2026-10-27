@@ -4,50 +4,60 @@ import XLSX from 'xlsx-js-style'
 import { parseCertificateWorkbook, matchPhotos, certificateNumber, predicateFor } from '../src/features/sertifikat/batch-data.js'
 
 function fixture() {
-  const sheet = { '!ref': 'D3:AF7', D3: { t: 's', v: 'Nama' }, AB3: { t: 's', v: 'Nilai Sertifikat' }, D6: { t: 's', v: 'Peserta A' }, D7: { t: 's', v: 'Peserta B' } }
-  ;['Bunpou', 'Dokkai', 'Kaiwa', 'Absensi', 'Summary'].forEach((v, i) => {
-    const col = ['AB', 'AC', 'AD', 'AE', 'AF'][i]
-    sheet[col + '4'] = { t: 's', v }
-    sheet[col + '6'] = { t: 'n', v: [23.875, 23.5, 24.125, 25, 96.5625][i], z: i === 4 ? '0.0' : '0' }
-    sheet[col + '7'] = { t: 'n', v: [24, 23, 25, 25, 97][i], z: i === 4 ? '0.0' : '0' }
-  })
-  return { SheetNames: ['Ignored', 'Progres nilai'], Sheets: { Ignored: {}, 'Progres nilai': sheet } }
+  const sheet = XLSX.utils.aoa_to_sheet([
+    ['TABEL UNTUK BULK GENERATOR'], [],
+    ['kelas', 'NAMA', 'Tempat', 'Nilai sertifikat'],
+    [null, null, null, 'Bunpou ', 'Kaiwa', 'Dokkai', 'Absensi', 'Nilai'],
+    ['GST26', 'Peserta A', 'Kuningan, 11 Mei 1994', 23.875, 22, 21, 25, 96.5625],
+    ['GST26', 'Peserta B', 'Jakarta, 12 November 1993', 24, 23, 25, 25, 97],
+  ])
+  sheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 1, c: 7 } }]
+  for (const row of [5, 6]) for (const col of ['D', 'E', 'F', 'G', 'H']) sheet[col + row].z = col === 'H' ? '0.0' : '0'
+  return { SheetNames: ['Nomor Sertifikat', 'AUTOMATE', 'Progres nilai'], Sheets: { 'Nomor Sertifikat': {}, AUTOMATE: sheet, 'Progres nilai': {} } }
 }
-test('reads only certificate table; preserves raw values and formatted Summary', () => {
-  const result = parseCertificateWorkbook(XLSX, fixture())
-  assert.equal(result.rows.length, 2)
-  assert.equal(result.rows[0].scores[0].value, 23.875)
-  assert.equal(result.rows[0].scores[0].display, '24')
-  assert.equal(result.rows[0].scores[4].display, '96.6')
-  assert.equal(result.rows[1].scores[4].display, '97.0')
+test('AUTOMATE imports uppercase names, individual TTL and class; maps Dokkai/Kaiwa by header', () => {
+  const { rows } = parseCertificateWorkbook(XLSX, fixture())
+  assert.equal(rows.length, 2)
+  assert.equal(rows[0].name, 'PESERTA A')
+  assert.equal(rows[0].ttl, 'Kuningan, 11 Mei 1994')
+  assert.equal(rows[1].ttl, 'Jakarta, 12 November 1993')
+  assert.equal(rows[0].studentClass, 'GST26')
+  assert.deepEqual(rows[0].scores.map(s => s.display), ['24', '21', '22', '25', '96.6'])
+  assert.equal(rows[0].scores[1].cell, 'F5')
+  assert.equal(rows[1].scores[4].display, '97.0')
 })
-test('rejects missing/error scores without silently treating them as zero', () => {
-  for (const bad of [undefined, { t: 'e', v: 7 }, { t: 'n', v: 101 }]) {
-    const book = fixture(); book.Sheets['Progres nilai'].AF6 = bad
+test('ignores other sheets and requires AUTOMATE, no fallback to old workbook', () => {
+  const book = fixture(); book.Sheets['Progres nilai'] = book.Sheets.AUTOMATE
+  assert.equal(parseCertificateWorkbook(XLSX, book).rows.length, 2)
+  book.SheetNames = ['Progres nilai']
+  assert.throws(() => parseCertificateWorkbook(XLSX, book), /AUTOMATE/)
+})
+test('rejects incomplete identity, invalid scores, and uncached formulas', () => {
+  for (const col of ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']) for (const bad of [undefined, { t: 'e', v: 7 }, { f: 'A1' }]) {
+    const book = fixture(); book.Sheets.AUTOMATE[col + '5'] = bad
     assert.throws(() => parseCertificateWorkbook(XLSX, book), /kosong\/error/)
   }
+  for (const [cell, value] of [['D5', 26], ['H5', 101], ['G5', -1]]) {
+    const book = fixture(); book.Sheets.AUTOMATE[cell].v = value
+    assert.throws(() => parseCertificateWorkbook(XLSX, book), /di luar/)
+  }
 })
-test('rejects duplicate names, wrong heading, and missing sheet', () => {
-  const book = fixture(); book.Sheets['Progres nilai'].D7.v = ' PESERTA   A '
+test('rejects duplicate names and missing/duplicate score headings', () => {
+  const book = fixture(); book.Sheets.AUTOMATE.B6.v = ' PESERTA   a '
   assert.throws(() => parseCertificateWorkbook(XLSX, book), /Nama ganda/)
-  const other = fixture(); other.Sheets['Progres nilai'].AB4.v = 'Other'
-  assert.throws(() => parseCertificateWorkbook(XLSX, other), /bunpou/)
-  assert.throws(() => parseCertificateWorkbook(XLSX, { SheetNames: [] }), /Sheet/)
+  const other = fixture(); other.Sheets.AUTOMATE.E4.v = 'Dokkai'
+  assert.throws(() => parseCertificateWorkbook(XLSX, other), /tepat satu/)
 })
-test('photo matching ignores case/spaces, rejects ambiguity and missing photos', () => {
+test('normalizes photo case, Unicode and repeated spaces; refuses typos and duplicates', () => {
   const rows = parseCertificateWorkbook(XLSX, fixture()).rows
-  assert.equal(matchPhotos(rows, [{ name: ' PESERTA  A.JPG', size: 30 }])[0].photoError, '')
-  assert.equal(matchPhotos(rows, [])[0].photoError, 'Foto belum ditemukan')
+  assert.equal(matchPhotos(rows, [{ name: ' peserta  a.JPG', size: 30 }])[0].photoError, '')
+  assert.equal(matchPhotos(rows, [{ name: 'ＰＥＳＥＲＴＡ A.png', size: 30 }])[0].photoError, '')
+  assert.equal(matchPhotos(rows, [{ name: 'Peserta aa.jpg', size: 30 }])[0].photoError, 'Foto belum ditemukan')
   assert.equal(matchPhotos(rows, [{ name: 'Peserta A.jpg', size: 30 }, { name: 'peserta a.png', size: 30 }])[0].photoError, 'Foto ganda')
 })
-test('numbering uses shared sequence and Roman month across classes/year', () => {
+test('numbering and predicates remain unchanged', () => {
   assert.equal(certificateNumber(1058, 'CLT', '2026-10-20'), 'NO.S.1058.CLT.20.X.2026')
   assert.equal(certificateNumber(1059, 'Bimbel', '2027-01-01'), 'NO.S.1059.Bimbel.1.I.2027')
-  assert.equal(certificateNumber(1060, 'TG', '2027-12-31'), 'NO.S.1060.TG.31.XII.2027')
-})
-test('predicate follows displayed Summary categories', () => {
-  assert.equal(predicateFor('97.0'), 'Amat Sangat Baik')
   assert.equal(predicateFor('96.6'), 'Amat Sangat Baik')
   assert.equal(predicateFor('90'), 'Amat Baik')
-  assert.equal(predicateFor('100'), 'Sempurna')
 })

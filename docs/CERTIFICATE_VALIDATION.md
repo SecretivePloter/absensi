@@ -41,3 +41,17 @@ Sertifikat peserta sebenarnya belum diterbitkan; admin perlu memasukkan folder f
 asli, melengkapi TTL, meninjau pengaturan, lalu menerbitkan dari akun yang diizinkan.
 
 Panduan operasional: `src/features/sertifikat/README.md`.
+
+## Revisi master AUTOMATE, 27 Oktober 2026
+
+- Master pengguna dibaca hanya dari AUTOMATE, tabel B7:L26, 16 peserta.
+- Nama C11:C26 dinormalisasi uppercase; TTL D11:D26 otomatis; sheet lain diabaikan.
+- Nilai H:L dipetakan menurut header, sehingga Dokkai dari J dan Kaiwa dari I.
+- Enam tes regresi parser lulus; lint modul tanpa error dan build 3508 modul lulus.
+- Browser mengimpor master asli dengan 16 foto sample bernama campuran kapital/spasi.
+- Seluruh TTL otomatis terisi. ZIP menghasilkan 16 PDF/32 halaman, 16 hash cocok,
+  ZIP tidak rusak, nol pageerror dan nol foto tidak cocok; layout 390/1024 tanpa overflow.
+- PDF peserta pertama dirender dan diperiksa: uppercase, TTL, foto, serta nilai
+  24/21/23/25/93 sesuai pemetaan kategori. Ini pratinjau, tidak memesan nomor resmi.
+- Login admin/RPC next disimulasikan untuk pengujian lokal; tidak memakai akun asli.
+- TTL dipertahankan sesuai teks master, termasuk ejaan; admin dapat mengoreksinya.

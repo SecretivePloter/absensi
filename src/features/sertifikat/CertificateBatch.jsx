@@ -40,12 +40,12 @@ export default function CertificateBatch() {
       const books = files.filter(file => /\.xlsx$/i.test(file.name) && !file.name.startsWith('~$'))
       if (books.length !== 1) throw new Error('Folder harus berisi tepat satu file .xlsx (file sementara Excel diabaikan).')
       if (books[0].size > 50 * 1024 * 1024) throw new Error('Ukuran workbook maksimal 50 MB.')
-      setStatus('Membaca tabel Nilai Sertifikat…')
+      setStatus('Membaca tabel master AUTOMATE…')
       const XLSX = await import('xlsx-js-style')
       const book = XLSX.read(await books[0].arrayBuffer(), { type: 'array', cellNF: true, cellText: true })
       const imported = parseCertificateWorkbook(XLSX, book)
       setRows(matchPhotos(imported.rows, files)); setSource(`${books[0].name} · ${imported.sheetName}`)
-      setStatus(`${imported.rows.length} peserta ditemukan. Lengkapi tempat/tanggal lahir dan periksa foto sebelum generate.`)
+      setStatus(`${imported.rows.length} peserta ditemukan. Nama, tempat/tanggal lahir, dan nilai diambil dari AUTOMATE. Periksa data dan foto sebelum generate.`)
     } catch (e) { setError(e.message); setStatus('Impor belum berhasil.') }
     finally { setBusy(false) }
   }
@@ -125,7 +125,7 @@ export default function CertificateBatch() {
     </div>
     <fieldset disabled={busy} className="space-y-4 rounded-xl border bg-card p-4 min-w-0">
       <label className="block space-y-2"><span className="font-medium text-sm">1. Pilih folder lokal</span><input aria-label="Folder sertifikat" type="file" webkitdirectory="" directory="" multiple onChange={importFolder} className="block w-full min-w-0 text-sm" /></label>
-      <p className="text-xs text-muted-foreground break-words">{source || 'Satu .xlsx dan foto JPG/PNG/WebP. Contoh: Hendro Ariyanto.jpg. Subfolder boleh digunakan.'}</p>
+      <p className="text-xs text-muted-foreground break-words">{source || 'Satu master .xlsx dengan sheet AUTOMATE dan foto JPG/PNG/WebP. Sheet lain diabaikan. Nama foto tidak membedakan kapital atau spasi berulang. Subfolder boleh digunakan.'}</p>
       {!!rows.length && <p className="text-sm text-green-700">Folder berhasil dibaca: {rows.length} peserta.</p>}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-sm">Jenis kelas<select aria-label="Jenis kelas" className={inputClass} value={settings.classType} onChange={e => setSettings({ ...settings, classType: e.target.value })}>{['CLT', 'Bimbel', 'TG'].map(v => <option key={v}>{v}</option>)}</select></label>
@@ -141,13 +141,13 @@ export default function CertificateBatch() {
     </fieldset>
     {!!rows.length && <fieldset disabled={busy} className="space-y-3 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-medium">2. Periksa {rows.length} peserta</h3><button className={buttonClass} onClick={() => setRows(rows.map(row => ({ ...row, selected: !rows.every(r => r.selected) })))}>{rows.every(row => row.selected) ? 'Batalkan semua pilihan' : 'Pilih semua'}</button></div>
-      <p className="text-sm text-muted-foreground">Nilai cetak mengikuti format sel Excel. Summary tidak dihitung ulang. Tempat/tanggal lahir wajib dilengkapi karena tidak tersedia pada tabel nilai.</p>
+      <p className="text-sm text-muted-foreground">Nama dicetak KAPITAL. Tempat/tanggal lahir otomatis dari kolom Tempat di AUTOMATE dan dapat dikoreksi di sini. Nilai akhir (Summary) mengikuti Excel, tidak dihitung ulang. Kelas peserta dari Excel tidak mengubah jenis nomor CLT/Bimbel/TG.</p>
       <p className="text-xs text-muted-foreground">Geser tabel ke kanan untuk melihat seluruh nilai, termasuk Summary.</p>
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm text-left"><thead className="bg-muted"><tr>{['Pilih', 'Nama / baris Excel', 'Foto', 'Tempat, tanggal lahir', 'Bunpou', 'Dokkai', 'Kaiwa', 'Absensi', 'Summary'].map(h => <th className="px-3 py-3 whitespace-nowrap" key={h}>{h}</th>)}</tr></thead>
           <tbody>{rows.map((row, index) => <tr key={row.key} className="border-t">
             <td className="px-3 py-3"><input aria-label={`Pilih ${row.name}`} type="checkbox" checked={row.selected} onChange={e => editRow(index, { selected: e.target.checked })} /></td>
-            <td className="px-3 py-3 min-w-40">{row.name}<small className="block text-muted-foreground">Baris {row.row}</small></td>
+            <td className="px-3 py-3 min-w-40">{row.name}<small className="block text-muted-foreground">{row.studentClass} · Baris {row.row}</small></td>
             <td className="px-3 py-3 min-w-48"><span className={row.photoError ? 'text-red-600' : 'text-green-700'}>{row.photoError || row.photo.name}</span><input aria-label={`Foto ${row.name}`} type="file" accept="image/jpeg,image/png,image/webp" className="mt-1 block w-48 text-xs" onChange={e => { const photo = e.target.files[0]; if (photo) editRow(index, { photo, photoError: photo.size && photo.size <= 10 * 1024 * 1024 ? '' : 'Foto harus 1 byte–10 MB' }) }} /></td>
             <td className="px-3 py-3 min-w-64"><input aria-label={`Tempat tanggal lahir ${row.name}`} className={inputClass} placeholder="Contoh: Kuningan, 11 Mei 1994" value={row.ttl} maxLength={200} onChange={e => editRow(index, { ttl: e.target.value })} /></td>
             {row.scores.map((score, i) => <td className="px-3 py-3 tabular-nums" key={i} title={`Nilai asli: ${score.value}; sel ${score.cell}`}>{score.display}</td>)}

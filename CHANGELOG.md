@@ -2,6 +2,13 @@
 
 Format: `[Tanggal] Versi / Sesi — Deskripsi`
 
+## [2026-10-27] Master AUTOMATE untuk sertifikat massal
+
+- Impor hanya tabel master AUTOMATE; sheet lainnya dan format Progres nilai lama diabaikan.
+- Nama uppercase, TTL otomatis dari kolom Tempat, informasi kelas dari master.
+- Pemetaan Bunpou/Kaiwa/Dokkai berdasarkan header; nilai akhir tetap mengikuti Excel.
+- Foto dicocokkan tanpa membedakan kapital dan spasi berulang, tanpa menebak salah eja.
+
 ## [2026-10-26] Perbaikan rute admin di Vercel
 
 - Rute admin menjadi /sertifikat-admin; URL lama /sertifikat diarahkan ke sana.
